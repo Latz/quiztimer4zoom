@@ -40,7 +40,6 @@ document.onreadystatechange = async () => {
 		// --------------------------------------------------------------------
 		const gui = initGui();
 		await initZoomSdk(gui);
-		// setPosition(quiztimerOptions.position, gui);
 
 		// --------------------------------------------------------------------
 		/**
@@ -124,7 +123,6 @@ document.onreadystatechange = async () => {
 			// add listener to size range
 			const val_timerSize = document.getElementById('val_timerSize');
 
-			// range_timerSize.value = canvas.height;
 			val_timerSize.innerText = gui.canvas.height;
 
 			// add listeners to size buttons

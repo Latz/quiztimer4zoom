@@ -28,7 +28,6 @@ zoomApp = {
 
 const app = express();
 app.use(express.static(path.join(__dirname, '.')));
-// app.use(express.static(path.join(__dirname, '/api/scripts')));
 
 app.use(cookieParser());
 

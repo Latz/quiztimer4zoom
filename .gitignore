@@ -2,3 +2,4 @@
 /node_modules
 /uitest
 /.env
+/sonar-project.properties
