@@ -1,0 +1,286 @@
+html {
+	scrollbar-gutter: stable;
+}
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+	overflow-y: hidden;
+}
+
+#container {
+	position: absolute;
+	width: 205px;
+	margin-left: auto;
+	margin-right: auto;
+	left: 0;
+	right: 0;
+	text-align: center;
+}
+
+#btn_startStop {
+	width: 201px;
+	height: 100px;
+}
+
+#btn_continue {
+	width: 201px;
+	margin-top: 5px;
+}
+
+#btn_20sec {
+	width: 98px;
+	margin-top: 5px;
+	float: left;
+}
+
+#btn_30sec {
+	width: 98px;
+	margin: 5px 0 0 5px;
+	float: left;
+	margin-bottom: 5px;
+}
+
+.smallHeading {
+	font-weight: bold;
+	margin: 15px 0 5px;
+}
+
+#corners {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#positionCorners {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	grid-template-rows: repeat(2, 1fr);
+	gap: 5px;
+	max-width: 84px;
+}
+
+#positionMove {
+	visibility: hidden;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	grid-template-rows: repeat(2, 1fr);
+	gap: 2px;
+	max-width: 84px;
+	margin: 0 auto;
+}
+
+#posTopLeft {
+	cursor: pointer;
+	font-size: 30px;
+	place-self: center;
+}
+
+#posTopRight {
+	font-size: 30px;
+	cursor: pointer;
+}
+
+#posBottomRight {
+	font-size: 30px;
+	cursor: pointer;
+}
+#posBottomLeft {
+	font-size: 30px;
+
+	cursor: pointer;
+}
+
+#posMoveUp {
+	height: 40px;
+	width: 40px;
+	background: url('images/arrow-up.png');
+}
+
+#posMoveDown {
+	height: 40px;
+	width: 40px;
+	background: url('images/arrow-down.png');
+}
+
+#posMoveLeft {
+	height: 40px;
+	width: 40px;
+	background: url('images/arrow-left.png');
+}
+
+#posMoveRight {
+	height: 40px;
+	width: 40px;
+	background: url('images/arrow-right.png');
+}
+
+#posMoveUp,
+#posMoveDown,
+#posMoveLeft,
+#posMoveRight {
+	display: hidden;
+}
+
+#canvas {
+	border: 1px solid black;
+	text-rendering: optimizeLegibility;
+
+	display: none;
+}
+
+#size {
+	width: 90%;
+}
+
+.settingsicon {
+	visibility: hidden;
+	position: absolute;
+	top: 5px;
+	right: 5px;
+	height: 32px;
+	width: 32px;
+	background: url('images/settings-32x32.png') no-repeat;
+}
+
+/* ------------------------------------------------------------------- */
+
+#subActions {
+	width: 205px;
+	clear: both;
+	padding-top: 10px;
+	display: flex;
+	flex-direction: row;
+	align-items: end;
+	margin-left: auto;
+	margin-right: 0;
+	float: right;
+}
+#countdown {
+	margin-right: 15px;
+}
+
+#btn_options,
+#btn_panic,
+#btn_help {
+	display: flex;
+	justify-content: space-between;
+	clear: both;
+	font-size: 16px;
+	background-color: transparent;
+	background-repeat: no-repeat;
+	border: none;
+	cursor: pointer;
+	overflow: hidden;
+	outline: none;
+	color: transparent;
+	text-shadow: 0 0 0 lightgrey;
+}
+
+#options {
+	clear: both;
+	padding-top: 10px;
+	visibility: hidden;
+}
+
+#btn_panic:hover {
+	color: inherit;
+}
+#btn_options:hover {
+	color: inherit;
+}
+#btn_help:hover {
+	color: inherit;
+}
+/* ---------------------------------------------------------------------- */
+/* Timer size */
+
+#timerSize {
+	margin-bottom: 5px;
+	user-select: none;
+}
+
+#timerSizeHeading {
+	margin-bottom: 5px;
+	font-size: 18px;
+	font-weight: bold;
+}
+
+.btn_timerSize {
+	border: 1px solid buttonborder;
+	cursor: pointer;
+	user-select: none;
+	appearance: button;
+	padding: 2px;
+	background-color: buttonface;
+	border-radius: 2px;
+}
+
+.btn_timerSize:hover {
+	transition: background-color 0.3s ease-in-out;
+	background-color: silver;
+}
+
+.headingSmall {
+	margin-bottom: 2px;
+}
+
+/* Color containers */
+
+.colorcontainer {
+	display: grid;
+	place-items: center;
+	grid-template-columns: repeat (3, auto);
+	grid-template-rows: repeat (2 Auto);
+	gap: 5px 3px;
+	grid-auto-flow: row;
+	grid-template-areas:
+		'selector1 number example'
+		'selector2 background example';
+	margin-bottom: 10px;
+}
+
+.colorHeading {
+	text-decoration: underline;
+}
+
+.selector1 {
+	grid-area: selector1;
+}
+.number {
+	grid-area: number;
+	justify-self: start;
+}
+.example {
+	grid-area: example;
+	font-size: 40px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight: bold;
+	border: 1px solid black;
+	padding: 2px;
+}
+.selector2 {
+	grid-area: selector2;
+}
+.background {
+	grid-area: background;
+}
+
+progress {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 5px;
+}
+
+progress::-webkit-progress-bar {
+	background-color: lightgray;
+	border-radius: 5px;
+}
+
+progress::-webkit-progress-value {
+	background-color: gray;
+	border-radius: 5px;
+}
+
+#opacity {
+	width: 100%;
+}

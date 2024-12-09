@@ -1,0 +1,32 @@
+{
+	"name": "quiztimer4zoom",
+	"version": "1.0.0",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"start": "node api/index.js",
+		"dev": "nodemon api/index.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"dependencies": {
+		"@edge-runtime/cookies": "^5.0.0",
+		"axios": "^1.7.7",
+		"cookie": "^1.0.0",
+		"cookie-parser": "^1.4.6",
+		"cookie-session": "^2.1.0",
+		"dotenv": "^16.4.5",
+		"express": "^4.20.0",
+		"expressjs": "^1.0.1",
+		"kill-port": "^2.0.1",
+		"node-localstorage": "^3.0.5",
+		"path": "^0.12.7",
+		"vanilla-colorful": "^0.7.2",
+		"vanilla-picker": "^2.12.3",
+		"vercel": "^39.1.2",
+		"vite": "^5.4.3",
+		"vite-plugin-static-copy": "^1.0.6"
+	}
+}

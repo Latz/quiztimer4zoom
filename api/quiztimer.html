@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<script type="text/javascript" src="/scripts/sdk.js"></script>
+		<script src="/quiztimer-script.js" type="module"></script>
+		<link rel="stylesheet" href="/quiztimer-styles.css" />
+		<title>Quiztimer</title>
+		<meta name="referrer" content="no-referrer" />
+	</head>
+	<body>
+		<div id="container">
+			<div id="actions">
+				<div class="div1"><button id="btn_startStop">Start</button></div>
+				<div class="div2"><button id="btn_continue">Continue</button></div>
+				<div class="div3"><button id="btn_20sec">20 Sek.</button></div>
+				<div class="div4"><button id="btn_30sec">30 Sek.</button></div>
+			</div>
+			<div id="subActions">
+				<progress id="countdown" max="100" value="100"></progress>
+				<span title="Options" id="btn_options">🛠️</span>
+				<span title="About" id="btn_help">❓</span>
+				<span title="Reset timer" id="btn_panic">💥</span>
+			</div>
+
+			<div id="options">
+				<hr />
+				<div id="position">
+					<div class="smallHeading">Position</div>
+					<div id="corners">
+						<div id="positionCorners">
+							<button id="posTopLeft">🡤</button>
+							<button id="posTopRight">🡥</button>
+							<button id="posBottomLeft">🡧</button>
+							<button id="posBottomRight">🡦</button>
+						</div>
+					</div>
+				</div>
+				<hr width="75%" />
+
+				<div class="smallHeading">Timer size</div>
+
+				<div id="timerSize">
+					<div>
+						<img
+							class="btn_timerSize"
+							id="btn_timerSizeMinusFast"
+							src="/images/smaller-fast.png"
+							referrerpolicy="no-referrer"
+							alt="Smaller fast"
+							title="Smaller fast"
+						/>
+						<img
+							class="btn_timerSize"
+							id="btn_timerSizeMinus"
+							src="/images/smaller.png"
+							alt="Smaller"
+							title="Smaller"
+						/>
+						<img
+							class="btn_timerSize"
+							id="btn_timerSizePlus"
+							src="/images/bigger.png"
+							alt="Bigger"
+							title="Bigger"
+						/>
+						<img
+							class="btn_timerSize"
+							id="btn_timerSizePlusFast"
+							src="/images/bigger-fast.png"
+							alt="Bigger fast"
+							title="Bigger fast"
+						/>
+						<div><span id="val_timerSize">0</span> px</div>
+					</div>
+				</div>
+				<hr width="75%" />
+				<div class="smallHeading">Color</div>
+				<div class="colorHeading">Standard</div>
+
+				<div class="colorcontainer">
+					<section class="colorcontainer">
+						<!-- Standard -->
+						<div>
+							<input type="color" id="colorSelectorNumberStandard" />
+						</div>
+						<div>
+							<input type="color" id="colorSelectorBackgroundStandard" />
+						</div>
+						<div class="number">Number</div>
+						<div class="Background">Background</div>
+						<div class="example" id="colorSelectorExampleStandard">20</div>
+					</section>
+				</div>
+
+				<div class="colorHeading">Warning</div>
+				<div class="colorcontainer">
+					<section class="colorcontainer">
+						<!-- Warning -->
+						<div>
+							<input type="color" id="colorSelectorNumberWarning" />
+						</div>
+						<div>
+							<input type="color" id="colorSelectorBackgroundWarning" />
+						</div>
+						<div class="number">Number</div>
+						<div class="Background">Background</div>
+						<div class="example" id="colorSelectorExampleWarning">20</div>
+					</section>
+				</div>
+
+				<div class="colorHeading">Timeout</div>
+				<div class="colorcontainer">
+					<section class="colorcontainer">
+						<!-- Warning -->
+						<div>
+							<input type="color" id="colorSelectorNumberTimeout" />
+						</div>
+						<div>
+							<input type="color" id="colorSelectorBackgroundTimeout" />
+						</div>
+						<div class="number">Number</div>
+						<div class="Background">Background</div>
+						<div class="example" id="colorSelectorExampleTimeout">20</div>
+					</section>
+				</div>
+				<hr width="75%" />
+
+				<div class="smallHeading">Background opacity</div>
+				<div id="opacity">
+					<input type="range" id="opacitySlider" min="0" max="255" /><span
+						id="opacityValue"
+					></span>
+				</div>
+			</div>
+
+			<div><canvas id="canvas">xxx</canvas></div>
+		</div>
+	</body>
+</html>
