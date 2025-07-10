@@ -1,5 +1,7 @@
-.vercel
+/.vercel
 /node_modules
 /uitest
 /.env
 /sonar-project.properties
+.vite.config
+vite.config.js.*

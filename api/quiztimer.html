@@ -4,13 +4,15 @@
 		<script type="text/javascript" src="/scripts/sdk.js"></script>
 		<script src="/quiztimer-script.js" type="module"></script>
 		<link rel="stylesheet" href="/quiztimer-styles.css" />
-		<title>Quiztimer</title>
+		<title>Quiztimer 4 Zoom</title>
 		<meta name="referrer" content="no-referrer" />
 	</head>
 	<body>
 		<div id="container">
 			<div id="actions">
-				<div class="div1"><button id="btn_startStop">Start</button></div>
+				<div class="div1">
+					<button id="btn_startStop" autofocus>Start</button>
+				</div>
 				<div class="div2"><button id="btn_continue">Continue</button></div>
 				<div class="div3"><button id="btn_20sec">20 Sek.</button></div>
 				<div class="div4"><button id="btn_30sec">30 Sek.</button></div>
@@ -135,5 +137,9 @@
 
 			<div><canvas id="canvas">xxx</canvas></div>
 		</div>
+
+		<dialog id="dialog">
+			<div>This is a</div>
+		</dialog>
 	</body>
 </html>

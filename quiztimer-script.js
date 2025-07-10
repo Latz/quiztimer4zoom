@@ -2,27 +2,26 @@ let quiztimerOptions = JSON.parse(localStorage.getItem('quiztimer'));
 if (!quiztimerOptions) {
 	quiztimerOptions = {
 		position: 'TopRight', // TopLeft, TopRight, BottomLeft, BottomRight
-		size: '300',
+		boxSize: 300,
 		numberStandard: '#000000',
 		numberWarning: '#000000',
 		numberTimeout: '#000000',
 		backgroundStandard: '#ffffff',
 		backgroundWarning: '#ffff00',
 		backgroundTimeout: '#ff0000',
+		textX: 0,
+		textY: 0,
+		x: 0,
+		y: 0,
 	};
 	localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
 }
 
-// Take care, that all options are present after a App update
-if (!quiztimerOptions.opacity) {
-	quiztimerOptions.opacity = 100;
-	localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
-}
+let isInitializing = true;
 
 document.onreadystatechange = async () => {
 	if (document.readyState === 'complete') {
 		let zIndex;
-		let metrix = {};
 		let prevImageId = '0';
 		let videoSize = quiztimerOptions.size;
 
@@ -35,11 +34,26 @@ document.onreadystatechange = async () => {
 		let timeLeft = 0;
 		let timedResetId;
 
+		let posX = 10,
+			posY = 10; // where to draw the text
+
 		const btnStartStop = document.getElementById('btn_startStop');
 		const btnContinue = document.getElementById('btn_continue');
 		// --------------------------------------------------------------------
 		const gui = initGui();
 		await initZoomSdk(gui);
+
+		// --------------------------------------------------------------------
+		// --------------------------------------------------------------------
+		async function isRenderingContextRunning() {
+			try {
+				const context = await zoomSdk.getRunningContext();
+				return context && context.status === 'running';
+			} catch (error) {
+				console.log('Error checking rendering context:', error);
+				return false;
+			}
+		}
 
 		// --------------------------------------------------------------------
 		/**
@@ -67,11 +81,10 @@ document.onreadystatechange = async () => {
 			const canvas = document.getElementById('canvas');
 			const ctx = canvas.getContext('2d', {
 				willReadFrequently: true,
-				alpha: true,
 			});
 			const gui = { canvas, ctx };
-			canvas.height = quiztimerOptions.size;
-			canvas.width = quiztimerOptions.size;
+			canvas.height = quiztimerOptions.boxSize;
+			canvas.width = quiztimerOptions.boxSize;
 			const actions = document.getElementById('actions');
 			actions.addEventListener('click', event => {
 				switch (event.target.id) {
@@ -95,7 +108,7 @@ document.onreadystatechange = async () => {
 			options.style.visibility = 'hidden';
 
 			const subActions = document.getElementById('subActions');
-			subActions.addEventListener('click', event => {
+			subActions.addEventListener('click', async event => {
 				switch (event.target.id) {
 					case 'btn_options':
 						// toggle options visibility
@@ -127,6 +140,24 @@ document.onreadystatechange = async () => {
 
 			// add listeners to size buttons
 			const buttons_timerSize = document.getElementById('timerSize');
+			let timerSizePlusFastTimeout;
+			let timerSizePlusFastInterval;
+
+			buttons_timerSize.addEventListener('mousedown', event => {
+				if (event.target.id === 'btn_timerSizePlusFast') {
+					timerSizePlusFastTimeout = setTimeout(() => {
+						timerSizePlusFastInterval = setInterval(() => {
+							event.target.click();
+						}, 1000);
+					}, 2000);
+				}
+			});
+
+			buttons_timerSize.addEventListener('mouseup', () => {
+				clearTimeout(timerSizePlusFastTimeout);
+				clearInterval(timerSizePlusFastInterval);
+			});
+
 			buttons_timerSize.addEventListener('click', event => {
 				let value;
 				switch (event.target.id) {
@@ -143,14 +174,11 @@ document.onreadystatechange = async () => {
 						value = 5;
 						break;
 				}
-				canvas.height = canvas.height + value;
-				canvas.width = canvas.width + value;
-				metrix.fontsize = canvas.height;
-				val_timerSize.innerText = canvas.height;
-				quiztimerOptions.size = canvas.height;
+				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
+				initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);
-				drawImage(gui.canvas, gui.ctx, duration);
 				localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
+				quiztimerOptions = JSON.parse(localStorage.getItem('quiztimer'));
 			});
 
 			// --- Opacity slider-------------------------------------------------------
@@ -199,7 +227,6 @@ document.onreadystatechange = async () => {
 		 */
 		function setDuration(gui, time) {
 			duration = time;
-
 			drawImage(gui.canvas, gui.ctx, duration);
 		}
 		//--------------------------------------------------------------------
@@ -216,20 +243,19 @@ document.onreadystatechange = async () => {
 					quiztimerOptions.y = 0;
 					break;
 				case 'posTopRight':
-					quiztimerOptions.x = videoSize.width - canvas.width;
+					quiztimerOptions.x = videoSize.width - gui.canvas.width;
 					quiztimerOptions.y = 0;
 					break;
 				case 'posBottomLeft':
 					quiztimerOptions.x = 0;
-					quiztimerOptions.y = videoSize.height - canvas.height;
+					quiztimerOptions.y = videoSize.height - gui.canvas.height;
 
 					break;
 				case 'posBottomRight':
-					quiztimerOptions.x = videoSize.width - canvas.width;
-					quiztimerOptions.y = videoSize.height - canvas.height;
+					quiztimerOptions.x = videoSize.width - gui.canvas.width;
+					quiztimerOptions.y = videoSize.height - gui.canvas.height;
 					break;
 			}
-
 			drawImage(gui.canvas, gui.ctx, duration);
 			quiztimerOptions.position = position;
 			localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
@@ -245,7 +271,7 @@ document.onreadystatechange = async () => {
 			// Initialize the Zoom SDK with the given capabilities
 			const configResult = await zoomSdk.config({
 				version: '0.16.19',
-				popoutSize: { width: 325, height: 206 },
+				popoutSize: { width: 350, height: 206 },
 				capabilities: [
 					'authorize',
 					'onAuthorized',
@@ -256,7 +282,21 @@ document.onreadystatechange = async () => {
 					'getRunningContext',
 					'closeRenderingContext',
 					'onMyMediaChange',
+					'onAppVisibilityChange',
+					'onAppPopout',
+					'appPopout',
+					'expandApp',
 				],
+				onAuthorized: authResponse => {
+					console.log('Initial authorization complete');
+				},
+			});
+
+			console.log('configResult', configResult);
+
+			// set up event listeners
+			zoomSdk.addEventListener('onAppPopout', () => {
+				console.log('App popout');
 			});
 
 			// Get the video size from the config result
@@ -265,64 +305,187 @@ document.onreadystatechange = async () => {
 			videoSize = { height, width };
 
 			// Run the rendering context with the given view
-			zoomSdk
-				.runRenderingContext({
-					view: 'camera',
-				})
-				.then(async () => {
-					// Get the current running context
-					await zoomSdk.getRunningContext();
-					// Set the font size of the metrix object
-					metrix.fontsize = gui.canvas.height;
-					// Initialize the timer
-					initTimer(gui);
-				})
-				.catch(async error => {
-					// Log the error
-					console.log('Error:', error);
-				});
+			if (!(await isRenderingContextRunning())) {
+				zoomSdk
+					.runRenderingContext({
+						view: 'camera',
+					})
+					.then(async () => {
+						// Get the current running context
+						await zoomSdk.getRunningContext();
+						// Initialize the timer
+						initCanvas(gui);
+						addEventListeners(gui);
+						isInitializing = false;
+					})
+					.catch(async error => {
+						// Log the error
+						console.log('Error:', error);
+					});
+			}
+		} // initZoomSdk
+
+		function addEventListeners(gui) {
+			// Set an event listener for the app visibility change event
+			zoomSdk.addEventListener('onAppVisibilityChange', event => {
+				console.log('onAppVisibilityChange', event);
+			});
 
 			// Set an event listener for the app popout event
-			zoomSdk.onAppPopout(event => {
+			zoomSdk.addEventListener('onAppPopout', event => {
 				console.log(event);
 			});
 
-			// Set an event listener for the my media change event
-			// zoomSdk.onMyMediaChange(event => {
-			// 	if (event.media.video.state === true) resetTimer(gui);
-			// });
+			// Set an event listener for the myMediaChange event
+			// and debounce it
+			let mediaChangeTimeout = null;
+			zoomSdk.addEventListener('onMyMediaChange', event => {
+				mediaChangeTimeout = setTimeout(() => {
+					console.log(
+						'onMyMediaChange',
+						event.media.video.state,
+						isInitializing
+					);
+					if (isInitializing) return;
+					if (
+						event.media.video.state === false &&
+						isRenderingContextRunning()
+					) {
+						zoomSdk
+							.closeRenderingContext()
+							.then(() => {
+								console.log('closeRenderingContext returned');
+							})
+							.catch(e => {
+								console.log(e);
+							});
+					} else if (event.media.video.state === true) {
+						initZoomSdk(gui);
+						initCanvas(gui);
+					}
+				}, 300);
+			});
+		} // addEventListeners
+
+		// ----------------------------------------------------------------------------------------------------
+		function getColors(time) {
+			let bgColor = `${quiztimerOptions.backgroundStandard}`;
+			let fgColor = quiztimerOptions.numberStandard;
+			if (time <= 5) {
+				fgColor = quiztimerOptions.numberWarning;
+				bgColor = `${quiztimerOptions.backgroundWarning}`;
+			}
+			if (time === 0) {
+				fgColor = quiztimerOptions.numberTimeout;
+				bgColor = `${quiztimerOptions.backgroundTimeout}`;
+			}
+			return { fgColor, bgColor };
 		}
 
-		/**
-		 * Initializes the timer with the given duration.
-		 * @param {Object} gui - The GUI object containing canvas and context information.
-		 * @example
-		 * initTimer(gui);
-		 */
-		async function initTimer(gui) {
-			const ctx = gui.ctx;
-			const canvas = gui.canvas;
+		// ----------------------------------------------------------------------------------------------------
+		function calcFontsize(fontFamily) {
+			// create virtual canvas
+			const virtualCanvas = document.createElement('canvas');
+			const virtualCtx = virtualCanvas.getContext('2d');
+			virtualCanvas.width = quiztimerOptions.boxSize;
+			virtualCanvas.height = quiztimerOptions.boxSize;
 
-			// Get the metrix object based on the canvas and context
-			metrix = getMetrix(canvas, ctx, duration);
+			const text = '88';
+			const paddingPercent = 5; // Padding as percentage of text size
+			const cornerRadius = 15; // Radius for rounded corners
 
-			// Set the font for the canvas
-			ctx.font = `bold condensed ${metrix.fontsize}px Verdana`;
+			// Set initial font to measure
+			virtualCtx.font = `bold 10px ${fontFamily}`;
 
-			// Set the background and text colors
-			ctx.fillStyle = quiztimerOptions.backgroundStandard;
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
-			ctx.fillStyle = quiztimerOptions.numberStandard;
+			// Measure the text
+			const metrics = virtualCtx.measureText(text);
+			const textHeight =
+				metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+			// Set canvas width and adjust height to match text height
+			// canvas.width = canvasWidth;
+			virtualCanvas.height =
+				textHeight + ((textHeight * paddingPercent) / 100) * 2;
 
-			// Draw the duration text on the canvas
-			ctx.fillText(duration, metrix.x, metrix.y);
+			// Clear the virtualCanvas
+			virtualCtx.clearRect(0, 0, virtualCanvas.width, virtualCanvas.height);
 
-			// Set the z-index of the canvas
-			zIndex = 2;
+			// Apply rounded corners to virtualCanvas element via CSS
+			virtualCanvas.style.borderRadius = `${cornerRadius}px`;
 
-			// Draw the image on the canvas
-			drawImage(canvas, ctx, duration);
+			// Binary search to find largest possible font size that fits the width
+			let minSize = 10;
+			let maxSize = 1000;
+			let bestFontSize = 0;
+
+			while (maxSize - minSize > 1) {
+				bestFontSize = Math.floor((minSize + maxSize) / 2);
+				virtualCtx.font = `bold ${bestFontSize}px ${fontFamily}`;
+
+				const newMetrics = virtualCtx.measureText(text);
+				const newTextWidth = newMetrics.width;
+				const newTextHeight =
+					newMetrics.actualBoundingBoxAscent +
+					newMetrics.actualBoundingBoxDescent;
+				const padding = (newTextHeight * paddingPercent) / 100;
+
+				if (newTextWidth + padding * 2 <= virtualCanvas.width) {
+					minSize = bestFontSize;
+				} else {
+					maxSize = bestFontSize;
+				}
+			}
+
+			// Use the found size
+			bestFontSize = minSize;
+			virtualCtx.font = `bold  ${bestFontSize}px ${fontFamily}`;
+
+			// Measure the text with final font size
+			const finalMetrics = virtualCtx.measureText(text);
+			const finalTextWidth = finalMetrics.width;
+			const finalTextHeight =
+				finalMetrics.actualBoundingBoxAscent +
+				finalMetrics.actualBoundingBoxDescent;
+			const padding = (finalTextHeight * paddingPercent) / 100;
+
+			// Resize virtualCanvas height to match the text height with the new font size
+			virtualCanvas.height = finalTextHeight + padding * 2;
+
+			// Calculate position to center text horizontally
+			const x = (virtualCanvas.width - finalTextWidth) / 2;
+			const y = finalMetrics.actualBoundingBoxAscent + padding;
+
+			return [x, y, bestFontSize, virtualCanvas.width, virtualCanvas.height];
 		}
+		// ----------------------------------------------------------------------------------------------------
+		function initCanvas(gui) {
+			// Set text properties
+			console.log('initCanvas!');
+			const fontFamily = 'Arial';
+			let [x, y, bestFontSize, canvasWidth, canvasHeight] =
+				calcFontsize(fontFamily);
+			posX = x;
+			posY = y;
+			console.log('canvasHeight', canvasHeight);
+			console.log('canvasWidth', canvasWidth);
+			gui.canvas.height = canvasHeight;
+			gui.canvas.width = canvasWidth;
+
+			const { fgColor, bgColor } = getColors(20);
+
+			// ####
+			// Reset font after canvas resize (canvas reset clears font settings)
+			gui.ctx.font = `bold  ${bestFontSize}px ${fontFamily}`;
+
+			// Set text style
+			gui.ctx.fillStyle = bgColor;
+			gui.ctx.textAlign = 'left';
+			gui.ctx.textBaseline = 'alphabetic';
+			console.log('GUI Canvas x, y', gui.canvas.width, gui.canvas.height);
+
+			drawImage(gui.canvas, gui.ctx, duration);
+		}
+
+		// ----------------------------------------------------------------------------------------------------
 
 		/**
 		 * Clears the current timer state and reinitializes the Zoom SDK.
@@ -338,8 +501,12 @@ document.onreadystatechange = async () => {
 			});
 		}
 		// --------------------------------------------------------------------
+		function recalcPosX(time) {
+			const width = gui.ctx.measureText(time - 1).width;
+			posX = (gui.canvas.width - width) / 2;
+		}
+		// --------------------------------------------------------------------
 		async function startTimer(gui) {
-			console.log('startTimer', timedResetId);
 			if (timedResetId) clearInterval(timedResetId); // User restarts timer before automatic reset is complete -> clear autommatic reset
 
 			state = running;
@@ -349,7 +516,6 @@ document.onreadystatechange = async () => {
 			const progressbar = document.getElementById('countdown');
 			progressbar.value = progressbar.max;
 
-			zIndex = 2;
 			runTimer(timeLeft, gui);
 		}
 		// --------------------------------------------------------------------
@@ -409,6 +575,7 @@ document.onreadystatechange = async () => {
 				progressbar.value = progressbar.value - progressbar.max / chunk;
 				if (progressbar.value <= 0) {
 					clearInterval(timedResetId);
+					recalcPosX(duration);
 					drawImage(gui.canvas, gui.ctx, duration);
 				}
 			}, 10);
@@ -422,7 +589,11 @@ document.onreadystatechange = async () => {
 
 			timerId = setInterval(() => {
 				drawImage(gui.canvas, gui.ctx, timeLeft);
+
 				timeLeft--;
+				if (timeLeft % 10 === 9) {
+					recalcPosX(timeLeft);
+				}
 				if (timeLeft < 0) {
 					clearInterval(timerId);
 					btnStartStop.innerText = 'Start';
@@ -432,67 +603,8 @@ document.onreadystatechange = async () => {
 			}, 1000);
 		}
 
-		// ---------------------------------------------------------------
-		/**
-		 * Calculates the actual width and height of a given string with the
-		 * current font, taking into account the actual bounding box.
-		 * @param {CanvasRenderingContext2D} ctx - The canvas context to use
-		 *   for measuring the string.
-		 * @param {string} time - The string to measure.
-		 * @returns {{width: number, height: number, descent: number, left: number}}
-		 *   An object containing the actual width, height, descent and left
-		 *   coordinates of the string.
-		 */
-		function getActualFontSize(ctx, time) {
-			const metrics = ctx.measureText(time);
-			let width = Math.abs(
-				metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight
-			);
-			// The actual bounding box height is the sum of the ascent and
-			// descent of the string.
-			let height =
-				Math.abs(metrics.actualBoundingBoxAscent) +
-				Math.abs(metrics.actualBoundingBoxDescent);
-			// The descent is the distance from the baseline to the bottom
-			// of the string.
-			let descent = Math.abs(metrics.actualBoundingBoxDescent);
-			// The left coordinate is the distance from the left edge of the
-			// canvas to the left edge of the string.
-			let left = Math.abs(metrics.actualBoundingBoxLeft);
-			return { width, height, descent, left };
-		}
-		// ---------------------------------------------------------------
-		function getMetrix(canvas, ctx, time) {
-			// use the widest cahracters to measure the size of the font
-			let dummyTime = 88;
-			if (time < 10) dummyTime = 8;
-			let fontsize = 1;
-			ctx.font = ` ${fontsize}px ${ctx.fontStyle}`;
-			let size = getActualFontSize(ctx, time);
-			let i = 0;
-			while (
-				size.height < canvas.height &&
-				size.width < canvas.width &&
-				i++ < 10000
-			) {
-				fontsize = fontsize + 1;
-				ctx.font = `bold condensed ${fontsize}px Verdana`;
-				size = getActualFontSize(ctx, dummyTime);
-			}
-			// center vertically
-			const y =
-				canvas.height - (canvas.height - size.height) / 2 - size.descent / 2;
-			const x = 0 - size.left;
-
-			return { x, y, fontsize };
-		}
 		// --------------------------------------------------------------------
 		async function drawImage(canvas, ctx, time) {
-			canvas.height = quiztimerOptions.size;
-			canvas.width = quiztimerOptions.size;
-
-			const x = quiztimerOptions.x;
-			const y = quiztimerOptions.y;
 			let fgColor = quiztimerOptions.numberStandard;
 			// -----------------------------------------------------------------------------
 			let bgColor = `${quiztimerOptions.backgroundStandard}`;
@@ -505,23 +617,15 @@ document.onreadystatechange = async () => {
 				bgColor = `${quiztimerOptions.backgroundTimeout}`;
 			}
 			//---------------------------------------------------------------
-
-			ctx.font = `bold condensed ${metrix.fontsize}px`;
-			ctx.fontKerning = 'normal';
-			// 			ctx.letterSpacing = '-100px';
-			// -------------------------------------------------------------------There-------------
+			zIndex++;
 
 			ctx.fillStyle = bgColor;
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
 			ctx.fillStyle = fgColor;
-			if (time === duration || time % 10 === 9) {
-				metrix = getMetrix(gui.canvas, gui.ctx, time);
-			}
-
-			ctx.font = `bold condensed ${metrix.fontsize}px Verdana`;
-			ctx.fillText(time, metrix.x, metrix.y);
+			ctx.fillText(time, posX, posY);
 			const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-			zIndex++;
+			const x = quiztimerOptions.x;
+			const y = quiztimerOptions.y;
 			let imageId = await zoomSdk.drawImage({
 				imageData,
 				zIndex,

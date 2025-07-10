@@ -26,10 +26,25 @@ zoomApp = {
 	redirectUrl: process.env.ZM_REDIRECT_URL,
 };
 
+console.log(sessionSSecret, zoomClientId, zoomClientSecret, redirectUrl);
+
+function noCache(req, res, next) {
+	res.setHeader(
+		'Cache-Control',
+		'no-store, no-cache, must-revalidate, proxy-revalidate'
+	);
+	res.setHeader('Pragma', 'no-cache');
+	res.setHeader('Expires', '0');
+	res.setHeader('Surrogate-Control', 'no-store'); // Also useful for CDNs
+	next();
+}
+
 const app = express();
 app.use(express.static(path.join(__dirname, '.')));
 
 app.use(cookieParser());
+
+app.use(noCache);
 
 app.get('/', async (req, res, next) => {
 	const header = req.header('x-zoom-app-context');
@@ -37,7 +52,8 @@ app.get('/', async (req, res, next) => {
 	if (isZoom) {
 		res.sendFile(path.join(__dirname, '/api/quiztimer.html'));
 	} else {
-		res.send(`Please<a href="/install">Click</a> to install.`);
+		// res.send(`Please<a href="/install">Click</a> to install.`);
+		res.redirect('http://fuzzy.monster/zoom-apps/quiztimer4zoom');
 	}
 });
 
