@@ -6,6 +6,11 @@
 		<link rel="stylesheet" href="/quiztimer-styles.css" />
 		<title>Quiztimer 4 Zoom</title>
 		<meta name="referrer" content="no-referrer" />
+		<style>
+			summary.smallHeading {
+				text-align: left;
+			}
+		</style>
 	</head>
 	<body>
 		<h1>Quiztimer4Zoom</h1>
@@ -25,8 +30,8 @@
 
 			<div id="options">
 				<hr />
-				<div id="position">
-					<div class="smallHeading">Position</div>
+				<details id="position">
+					<summary class="smallHeading">Position</summary>
 					<div id="corners">
 						<div id="positionCorners">
 							<button id="posTopLeft">🡤</button>
@@ -35,95 +40,99 @@
 							<button id="posBottomRight">🡦</button>
 						</div>
 					</div>
-				</div>
+				</details>
 				<hr />
 
-				<div class="smallHeading">Timer size</div>
+				<details>
+					<summary class="smallHeading">Timer size</summary>
 
-				<div id="timerSize">
-					<div>
-						<img
-							class="btn_timerSize"
-							id="btn_timerSizeMinusFast"
-							src="/images/smaller-fast.png"
-							referrerpolicy="no-referrer"
-							alt="Smaller fast"
-							title="Smaller fast"
-						/>
-						<img
-							class="btn_timerSize"
-							id="btn_timerSizeMinus"
-							src="/images/smaller.png"
-							alt="Smaller"
-							title="Smaller"
-						/>
-						<img
-							class="btn_timerSize"
-							id="btn_timerSizePlus"
-							src="/images/bigger.png"
-							alt="Bigger"
-							title="Bigger"
-						/>
-						<img
-							class="btn_timerSize"
-							id="btn_timerSizePlusFast"
-							src="/images/bigger-fast.png"
-							alt="Bigger fast"
-							title="Bigger fast"
-						/>
-						<div><span id="val_timerSize">0</span> px</div>
+					<div id="timerSize">
+						<div>
+							<img
+								class="btn_timerSize"
+								id="btn_timerSizeMinusFast"
+								src="/images/smaller-fast.png"
+								referrerpolicy="no-referrer"
+								alt="Smaller fast"
+								title="Smaller fast"
+							/>
+							<img
+								class="btn_timerSize"
+								id="btn_timerSizeMinus"
+								src="/images/smaller.png"
+								alt="Smaller"
+								title="Smaller"
+							/>
+							<img
+								class="btn_timerSize"
+								id="btn_timerSizePlus"
+								src="/images/bigger.png"
+								alt="Bigger"
+								title="Bigger"
+							/>
+							<img
+								class="btn_timerSize"
+								id="btn_timerSizePlusFast"
+								src="/images/bigger-fast.png"
+								alt="Bigger fast"
+								title="Bigger fast"
+							/>
+							<div><span id="val_timerSize">0</span> px</div>
+						</div>
 					</div>
-				</div>
+				</details>
 				<hr />
-				<div class="smallHeading">Color</div>
-				<div class="colorHeading">Standard</div>
+				<details>
+					<summary class="smallHeading">Color</summary>
+					<div class="colorHeading">Standard</div>
 
-				<div class="colorcontainer">
-					<section class="colorcontainer">
-						<!-- Standard -->
-						<div>
-							<input type="color" id="colorSelectorNumberStandard" />
-						</div>
-						<div>
-							<input type="color" id="colorSelectorBackgroundStandard" />
-						</div>
-						<div class="number">Number</div>
-						<div class="Background">Background</div>
-						<div class="example" id="colorSelectorExampleStandard">20</div>
-					</section>
-				</div>
+					<div class="colorcontainer">
+						<section class="colorcontainer">
+							<!-- Standard -->
+							<div>
+								<input type="color" id="colorSelectorNumberStandard" />
+							</div>
+							<div>
+								<input type="color" id="colorSelectorBackgroundStandard" />
+							</div>
+							<div class="number">Number</div>
+							<div class="Background">Background</div>
+							<div class="example" id="colorSelectorExampleStandard">20</div>
+						</section>
+					</div>
 
-				<div class="colorHeading">Warning</div>
-				<div class="colorcontainer">
-					<section class="colorcontainer">
-						<!-- Warning -->
-						<div>
-							<input type="color" id="colorSelectorNumberWarning" />
-						</div>
-						<div>
-							<input type="color" id="colorSelectorBackgroundWarning" />
-						</div>
-						<div class="number">Number</div>
-						<div class="Background">Background</div>
-						<div class="example" id="colorSelectorExampleWarning">20</div>
-					</section>
-				</div>
+					<div class="colorHeading">Warning</div>
+					<div class="colorcontainer">
+						<section class="colorcontainer">
+							<!-- Warning -->
+							<div>
+								<input type="color" id="colorSelectorNumberWarning" />
+							</div>
+							<div>
+								<input type="color" id="colorSelectorBackgroundWarning" />
+							</div>
+							<div class="number">Number</div>
+							<div class="Background">Background</div>
+							<div class="example" id="colorSelectorExampleWarning">20</div>
+						</section>
+					</div>
 
-				<div class="colorHeading">Timeout</div>
-				<div class="colorcontainer">
-					<section class="colorcontainer">
-						<!-- Warning -->
-						<div>
-							<input type="color" id="colorSelectorNumberTimeout" />
-						</div>
-						<div>
-							<input type="color" id="colorSelectorBackgroundTimeout" />
-						</div>
-						<div class="number">Number</div>
-						<div class="Background">Background</div>
-						<div class="example" id="colorSelectorExampleTimeout">20</div>
-					</section>
-				</div>
+					<div class="colorHeading">Timeout</div>
+					<div class="colorcontainer">
+						<section class="colorcontainer">
+							<!-- Warning -->
+							<div>
+								<input type="color" id="colorSelectorNumberTimeout" />
+							</div>
+							<div>
+								<input type="color" id="colorSelectorBackgroundTimeout" />
+							</div>
+							<div class="number">Number</div>
+							<div class="Background">Background</div>
+							<div class="example" id="colorSelectorExampleTimeout">20</div>
+						</section>
+					</div>
+				</details>
 				<hr />
 
 				<div class="smallHeading">Background opacity</div>
