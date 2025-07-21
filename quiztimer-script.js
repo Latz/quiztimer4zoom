@@ -75,6 +75,26 @@ document.onreadystatechange = async () => {
 			canvas.width = quiztimerOptions.boxSize;
 			const actions = document.getElementById('actions');
 			actions.addEventListener('click', event => {
+				if (event.target.closest('.ripple-button')) {
+					const button = event.target.closest('.ripple-button');
+					const ripple = document.createElement('span');
+					const rect = button.getBoundingClientRect();
+					const size = Math.max(rect.width, rect.height);
+					const x = event.clientX - rect.left - size / 2;
+					const y = event.clientY - rect.top - size / 2;
+
+					ripple.style.width = ripple.style.height = `${size}px`;
+					ripple.style.left = `${x}px`;
+					ripple.style.top = `${y}px`;
+
+					ripple.classList.add('ripple');
+					button.appendChild(ripple);
+
+					ripple.addEventListener('animationend', () => {
+						ripple.remove();
+					});
+				}
+
 				switch (event.target.id) {
 					case 'btn_startStop':
 						if (state === stop) startTimer(gui);
@@ -463,6 +483,7 @@ document.onreadystatechange = async () => {
 
 			state = running;
 			btnStartStop.innerText = 'Stop';
+
 			btnContinue.disabled = true;
 			timeLeft = duration;
 			const progressbar = document.getElementById('countdown');
@@ -557,6 +578,7 @@ document.onreadystatechange = async () => {
 
 		// --------------------------------------------------------------------
 		async function drawImage(canvas, ctx, time) {
+			console.log('draw Image');
 			let fgColor = quiztimerOptions.numberStandard;
 			// -----------------------------------------------------------------------------
 			let bgColor = `${quiztimerOptions.backgroundStandard}`;
@@ -578,13 +600,15 @@ document.onreadystatechange = async () => {
 			const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 			const x = quiztimerOptions.x;
 			const y = quiztimerOptions.y;
+			const start = performance.now();
 			let imageId = await zoomSdk.drawImage({
 				imageData,
 				zIndex,
 				x,
 				y,
 			});
-
+			const end = performance.now();
+			console.log(`Execution time: ${end - start} milliseconds`);
 			// remove previous image
 			if (prevImageId !== '0') {
 				zoomSdk.clearImage(prevImageId);
