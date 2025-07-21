@@ -7,9 +7,6 @@
 		"start": "node api/index.js",
 		"dev": "nodemon api/index.js"
 	},
-	"icons": {
-		"64": "images/logo64x64.jpg"
-	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
@@ -34,7 +31,6 @@
 		"vite-plugin-static-copy": "^1.0.6"
 	},
 	"devDependencies": {
-		"oxlint": "^1.3.0",
 		"vite-plugin-minify": "^2.1.0"
 	}
 }

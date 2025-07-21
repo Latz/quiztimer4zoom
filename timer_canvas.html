@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canvas Timer</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 500px;
+      padding: 20px;
+    }
+    
+    canvas {
+      border: 1px solid #ccc;
+      margin: 20px 0;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      background-color: white;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    button:hover {
+      background-color: #3367d6;
+    }
+    
+    input {
+      padding: 8px;
+      width: 80px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    .digital-time {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Canvas Timer</h1>
+    
+    <div class="controls">
+      <input type="number" id="minutesInput" placeholder="Minutes" min="1" max="60" value="5">
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    
+    <div class="digital-time" id="digitalTime">05:00</div>
+    
+    <canvas id="timerCanvas" width="300" height="300"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('timerCanvas');
+    const ctx = canvas.getContext('2d');
+    const digitalTime = document.getElementById('digitalTime');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const minutesInput = document.getElementById('minutesInput');
+    
+    let totalSeconds = 5 * 60; // Default 5 minutes
+    let remainingSeconds = totalSeconds;
+    let isRunning = false;
+    let timerInterval = null;
+    
+    // Pre-render clock face images for efficiency
+    const clockFaceImages = [];
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 300;
+    offscreenCanvas.height = 300;
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+    
+    // Create 60 pre-rendered images (one for each second of a minute)
+    function createClockFaceImages() {
+      for (let i = 0; i <= 60; i++) {
+        // Draw the clock face
+        drawClockFace(offscreenCtx, i / 60);
+        
+        // Store the image data
+        const imageData = offscreenCanvas.toDataURL();
+        const img = new Image();
+        img.src = imageData;
+        clockFaceImages.push(img);
+      }
+    }
+    
+    function drawClockFace(context, completionRatio) {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 10;
+      
+      // Clear the canvas
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw the clock outline
+      context.beginPath();
+      context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      context.strokeStyle = '#333';
+      context.lineWidth = 2;
+      context.stroke();
+      
+      // Draw the filled background
+      context.beginPath();
+      context.moveTo(centerX, centerY);
+      context.arc(centerX, centerY, radius, -Math.PI/2, -Math.PI/2 + (1 - completionRatio) * 2 * Math.PI);
+      context.closePath();
+      context.fillStyle = '#4285f4';
+      context.fill();
+      
+      // Draw hour marks
+      for (let i = 0; i < 12; i++) {
+        const angle = i * Math.PI / 6;
+        const x1 = centerX + Math.cos(angle) * (radius - 5);
+        const y1 = centerY + Math.sin(angle) * (radius - 5);
+        const x2 = centerX + Math.cos(angle) * (radius - 15);
+        const y2 = centerY + Math.sin(angle) * (radius - 15);
+        
+        context.beginPath();
+        context.moveTo(x1, y1);
+        context.lineTo(x2, y2);
+        context.strokeStyle = '#333';
+        context.lineWidth = 2;
+        context.stroke();
+      }
+      
+      // Draw minute marks
+      for (let i = 0; i < 60; i++) {
+        if (i % 5 !== 0) {
+          const angle = i * Math.PI / 30;
+          const x1 = centerX + Math.cos(angle) * (radius - 5);
+          const y1 = centerY + Math.sin(angle) * (radius - 5);
+          const x2 = centerX + Math.cos(angle) * (radius - 10);
+          const y2 = centerY + Math.sin(angle) * (radius - 10);
+          
+          context.beginPath();
+          context.moveTo(x1, y1);
+          context.lineTo(x2, y2);
+          context.strokeStyle = '#333';
+          context.lineWidth = 1;
+          context.stroke();
+        }
+      }
+      
+      // Draw the center point
+      context.beginPath();
+      context.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+      context.fillStyle = '#333';
+      context.fill();
+    }
+    
+    function updateTimer() {
+      if (remainingSeconds <= 0) {
+        endTimer();
+        return;
+      }
+      
+      remainingSeconds--;
+      updateDisplay();
+    }
+    
+    function updateDisplay() {
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      
+      // Update digital display
+      digitalTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Calculate completion ratio
+      const completionRatio = 1 - (remainingSeconds / totalSeconds);
+      
+      // Draw using pre-rendered image
+      const imageIndex = Math.min(60, Math.floor(completionRatio * 60));
+      
+      if (clockFaceImages[imageIndex] && clockFaceImages[imageIndex].complete) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(clockFaceImages[imageIndex], 0, 0);
+      } else {
+        // Fallback if image isn't loaded yet
+        drawClockFace(ctx, completionRatio);
+      }
+    }
+    
+    function startTimer() {
+      if (!isRunning) {
+        isRunning = true;
+        timerInterval = setInterval(updateTimer, 1000);
+      }
+    }
+    
+    function pauseTimer() {
+      if (isRunning) {
+        isRunning = false;
+        clearInterval(timerInterval);
+      }
+    }
+    
+    function resetTimer() {
+      pauseTimer();
+      totalSeconds = parseInt(minutesInput.value) * 60 || 300; // Default to 5 minutes
+      remainingSeconds = totalSeconds;
+      updateDisplay();
+    }
+    
+    function endTimer() {
+      pauseTimer();
+      alert('Timer Complete!');
+    }
+    
+    // Event listeners
+    startBtn.addEventListener('click', startTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    
+    minutesInput.addEventListener('change', () => {
+      pauseTimer();
+      resetTimer();
+    });
+    
+    // Initialize
+    createClockFaceImages();
+    resetTimer();
+  </script>
+</body>
+</html>

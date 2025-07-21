@@ -17,8 +17,6 @@ if (!quiztimerOptions) {
 	localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
 }
 
-let isInitializing = true;
-
 document.onreadystatechange = async () => {
 	if (document.readyState === 'complete') {
 		let zIndex;
@@ -145,7 +143,7 @@ document.onreadystatechange = async () => {
 						break;
 				}
 				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
-				// initCanvas(gui);
+				initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);
 				localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
 			});
@@ -225,7 +223,6 @@ document.onreadystatechange = async () => {
 					quiztimerOptions.y = videoSize.height - gui.canvas.height;
 					break;
 			}
-			initCanvas(gui);
 			drawImage(gui.canvas, gui.ctx, duration);
 			quiztimerOptions.position = position;
 			localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
@@ -253,9 +250,6 @@ document.onreadystatechange = async () => {
 					'closeRenderingContext',
 					'onMyMediaChange',
 				],
-				onAuthorized: authResponse => {
-					console.log('Initial authorization complete');
-				},
 			});
 
 			// Get the video size from the config result
@@ -273,52 +267,22 @@ document.onreadystatechange = async () => {
 					await zoomSdk.getRunningContext();
 					// Initialize the timer
 					initCanvas(gui);
-					addEventListeners(gui);
-					isInitializing = false;
 				})
 				.catch(async error => {
 					// Log the error
 					console.log('Error:', error);
 				});
-		} // initZoomSdk
-
-		function addEventListeners(gui) {
-			// Set an event listener for the app visibility change event
-			zoomSdk.addEventListener('onAppVisibilityChange', event => {
-				console.log('onAppVisibilityChange', event);
-			});
 
 			// Set an event listener for the app popout event
-			zoomSdk.addEventListener('onAppPopout', event => {
+			zoomSdk.onAppPopout(event => {
 				console.log(event);
 			});
 
-			// Set an event listener for the app popout event
-			zoomSdk.addEventListener('onAppVisibilityChange', event => {
-				console.log('onAppVisibilityChange', event);
-			});
-
-			// Set an event listener for the myMediaChange event
-			// and debounce it
-			zoomSdk.addEventListener('onMyMediaChange', event => {
-				console.log('onMyMediaChange', event.media.video.state, isInitializing);
-				if (isInitializing) return;
-				if (event.media.video.state === false) {
-					zoomSdk
-						.closeRenderingContext()
-						.then(() => {
-							console.log('closeRenderingContext returned');
-						})
-						.catch(e => {
-							console.log(e);
-						});
-				} else {
-					initZoomSdk(gui);
-					initCanvas(gui);
-				}
-			});
-		} // addEventListeners
-
+			// Set an event listener for the my media change event
+			// zoomSdk.onMyMediaChange(event => {
+			// 	if (event.media.video.state === true) resetTimer(gui);
+			// });
+		}
 		// ----------------------------------------------------------------------------------------------------
 		function getColors(time) {
 			let bgColor = `${quiztimerOptions.backgroundStandard}`;
@@ -411,7 +375,7 @@ document.onreadystatechange = async () => {
 		// ----------------------------------------------------------------------------------------------------
 		function initCanvas(gui) {
 			// Set text properties
-			console.log('initCanvas!');
+			console.log('initCanvas');
 			const fontFamily = 'Arial';
 			let [x, y, bestFontSize, canvasWidth, canvasHeight] =
 				calcFontsize(fontFamily);
@@ -468,6 +432,7 @@ document.onreadystatechange = async () => {
 			const progressbar = document.getElementById('countdown');
 			progressbar.value = progressbar.max;
 
+			// zIndex = 2;
 			runTimer(timeLeft, gui);
 		}
 		// --------------------------------------------------------------------

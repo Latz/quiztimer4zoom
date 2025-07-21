@@ -26,8 +26,6 @@ zoomApp = {
 	redirectUrl: process.env.ZM_REDIRECT_URL,
 };
 
-console.log(sessionSSecret, zoomClientId, zoomClientSecret, redirectUrl);
-
 function noCache(req, res, next) {
 	res.setHeader(
 		'Cache-Control',
@@ -52,8 +50,7 @@ app.get('/', async (req, res, next) => {
 	if (isZoom) {
 		res.sendFile(path.join(__dirname, '/api/quiztimer.html'));
 	} else {
-		// res.send(`Please<a href="/install">Click</a> to install.`);
-		res.redirect('http://fuzzy.monster/zoom-apps/quiztimer4zoom');
+		res.send(`Please<a href="/install">Click</a> to install.`);
 	}
 });
 
