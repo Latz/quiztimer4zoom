@@ -144,8 +144,6 @@ document.onreadystatechange = async () => {
 			// add listener to size range
 			const val_timerSize = document.getElementById('val_timerSize');
 
-			val_timerSize.innerText = gui.canvas.height;
-
 			// add listeners to size buttons
 			const buttons_timerSize = document.getElementById('timerSize');
 			buttons_timerSize.addEventListener('click', event => {
@@ -164,6 +162,7 @@ document.onreadystatechange = async () => {
 						value = 5;
 						break;
 				}
+				if (value === undefined) return;
 				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
 				// initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);

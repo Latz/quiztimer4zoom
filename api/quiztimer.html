@@ -10,13 +10,36 @@
 			summary.smallHeading {
 				text-align: left;
 			}
+			#timerSize {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 10px;
+			}
+			.btn_timerSize {
+				background-color: #f0f0f0;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+				padding: 5px 10px;
+				cursor: pointer;
+				font-weight: bold;
+			}
+			.btn_timerSize:hover {
+				background-color: #e0e0e0;
+			}
+			#val_timerSize_container {
+				min-width: 50px;
+				text-align: center;
+			}
 		</style>
 	</head>
 	<body>
 		<h1>Quiztimer4Zoom</h1>
 		<div id="container">
 			<div id="actions">
-				<div class="div1"><button id="btn_startStop" class="ripple-button">Start</button></div>
+				<div class="div1">
+					<button id="btn_startStop" class="ripple-button">Start</button>
+				</div>
 				<div class="div2"><button id="btn_continue">Continue</button></div>
 				<div class="div3"><button id="btn_20sec">20 Sek.</button></div>
 				<div class="div4"><button id="btn_30sec">30 Sek.</button></div>
@@ -47,38 +70,31 @@
 					<summary class="smallHeading">Timer size</summary>
 
 					<div id="timerSize">
-						<div>
-							<img
-								class="btn_timerSize"
-								id="btn_timerSizeMinusFast"
-								src="/images/smaller-fast.png"
-								referrerpolicy="no-referrer"
-								alt="Smaller fast"
-								title="Smaller fast"
-							/>
-							<img
-								class="btn_timerSize"
-								id="btn_timerSizeMinus"
-								src="/images/smaller.png"
-								alt="Smaller"
-								title="Smaller"
-							/>
-							<img
-								class="btn_timerSize"
-								id="btn_timerSizePlus"
-								src="/images/bigger.png"
-								alt="Bigger"
-								title="Bigger"
-							/>
-							<img
-								class="btn_timerSize"
-								id="btn_timerSizePlusFast"
-								src="/images/bigger-fast.png"
-								alt="Bigger fast"
-								title="Bigger fast"
-							/>
-							<div><span id="val_timerSize">0</span> px</div>
-						</div>
+						<button
+							class="btn_timerSize"
+							id="btn_timerSizeMinusFast"
+							title="Smaller fast"
+						>
+							&lt;&lt;
+						</button>
+						<button
+							class="btn_timerSize"
+							id="btn_timerSizeMinus"
+							title="Smaller"
+						>
+							&lt;
+						</button>
+						<span id="val_timerSize_container"> </span>
+						<button class="btn_timerSize" id="btn_timerSizePlus" title="Bigger">
+							&gt;
+						</button>
+						<button
+							class="btn_timerSize"
+							id="btn_timerSizePlusFast"
+							title="Bigger fast"
+						>
+							&gt;&gt;
+						</button>
 					</div>
 				</details>
 				<hr />
@@ -134,13 +150,6 @@
 					</div>
 				</details>
 				<hr />
-
-				<div class="smallHeading">Background opacity</div>
-				<div id="opacity">
-					<input type="range" id="opacitySlider" min="0" max="255" /><span
-						id="opacityValue"
-					></span>
-				</div>
 			</div>
 
 			<div><canvas id="canvas">xxx</canvas></div>
