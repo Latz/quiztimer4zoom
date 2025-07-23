@@ -1,6 +1,6 @@
-/* html {
-	scrollbar-gutter: stable;
-} */
+html {
+	scrollbar-gutter: stable both-edges;
+}
 
 body {
 	font-family: Arial, Helvetica, sans-serif;
@@ -8,7 +8,6 @@ body {
 }
 
 #container {
-	position: absolute;
 	width: 205px;
 	margin-left: auto;
 	margin-right: auto;
@@ -123,14 +122,6 @@ body {
 	display: hidden;
 }
 
-#canvas {
-	border: 1px solid black;
-	text-rendering: optimizeLegibility;
-	font-family: Tahoma, Geneva, Verdana, sans-serif;
-
-	/* display: none; */
-}
-
 #size {
 	width: 90%;
 }
@@ -182,7 +173,7 @@ body {
 #options {
 	clear: both;
 	padding-top: 10px;
-	/* visibility: hidden; */
+	visibility: hidden;
 }
 
 #btn_panic:hover {
@@ -213,7 +204,7 @@ body {
 	cursor: pointer;
 	user-select: none;
 	appearance: button;
-	padding: 2px;
+	padding: 0;
 	background-color: buttonface;
 	border-radius: 2px;
 }

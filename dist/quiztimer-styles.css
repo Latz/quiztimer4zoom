@@ -211,7 +211,7 @@ body {
 	cursor: pointer;
 	user-select: none;
 	appearance: button;
-	padding: 2px;
+	padding: 0;
 	background-color: buttonface;
 	border-radius: 2px;
 }

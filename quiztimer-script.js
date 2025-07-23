@@ -66,7 +66,7 @@ document.onreadystatechange = async () => {
 		 * Actions include starting or stopping the timer, continuing the timer, and setting the duration to 20 or 30 seconds.
 		 */
 		function initGui() {
-			const canvas = document.getElementById('canvas');
+			const canvas = document.createElement('canvas');
 			const ctx = canvas.getContext('2d', {
 				willReadFrequently: true,
 			});
@@ -113,7 +113,7 @@ document.onreadystatechange = async () => {
 			});
 
 			const options = document.getElementById('options');
-			// options.style.visibility = 'hidden';
+			options.style.visibility = 'hidden';
 
 			const subActions = document.getElementById('subActions');
 			subActions.addEventListener('click', event => {
@@ -141,9 +141,6 @@ document.onreadystatechange = async () => {
 				setPosition(event.target.id, gui);
 			});
 
-			// add listener to size range
-			const val_timerSize = document.getElementById('val_timerSize');
-
 			// add listeners to size buttons
 			const buttons_timerSize = document.getElementById('timerSize');
 			buttons_timerSize.addEventListener('click', event => {
@@ -166,23 +163,6 @@ document.onreadystatechange = async () => {
 				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
 				// initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);
-				localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
-			});
-
-			// --- Opacity slider-------------------------------------------------------
-			const opacity = document.getElementById('opacitySlider');
-			const opacityValue = document.getElementById('opacityValue');
-			if (quiztimerOptions?.opacity) opacity.value = quiztimerOptions?.opacity;
-			else opacity.value = 100;
-			opacityValue.innerText = `${opacity.value}%`;
-			opacity.value = quiztimerOptions.opacity;
-
-			opacity.addEventListener('input', event => {
-				opacityValue.innerText = `${event.target.value}%`;
-			});
-			opacity.addEventListener('change', event => {
-				quiztimerOptions.opacity = parseInt(event.target.value).toString(16);
-				drawImage(gui.canvas, gui.ctx, duration);
 				localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
 			});
 
@@ -260,11 +240,11 @@ document.onreadystatechange = async () => {
 			// Initialize the Zoom SDK with the given capabilities
 			const configResult = await zoomSdk.config({
 				version: '0.16.19',
-				popoutSize: { width: 325, height: 206 },
+				popoutSize: { width: 322, height: 350 },
 				capabilities: [
 					'authorize',
 					'onAuthorized',
-					'shareApp',
+					// 'shareApp',
 					'drawImage',
 					'clearImage',
 					'runRenderingContext',
