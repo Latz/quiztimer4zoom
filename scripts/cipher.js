@@ -1,5 +1,5 @@
 import createError from 'http-errors';
-import { zoomApp } from './config.js';
+import { zoomApp } from '../config.js';
 import crypto from 'node:crypto';
 
 /**

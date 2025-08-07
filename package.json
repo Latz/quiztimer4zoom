@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"start": "node api/index.js",
-		"dev": "nodemon api/index.js"
+		"dev": "nodemon api/index.js",
+		"build": "vite build"
 	},
 	"keywords": [],
 	"author": "",
@@ -27,8 +28,7 @@
 		"vanilla-colorful": "^0.7.2",
 		"vanilla-picker": "^2.12.3",
 		"vercel": "^41.6.2",
-		"vite": "^5.4.3",
-		"vite-plugin-static-copy": "^1.0.6"
+		"vite": "^5.4.3"
 	},
 	"devDependencies": {
 		"vite-plugin-minify": "^2.1.0"
