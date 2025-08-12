@@ -74,65 +74,39 @@ document.onreadystatechange = async () => {
 			canvas.height = quiztimerOptions.boxSize;
 			canvas.width = quiztimerOptions.boxSize;
 			const actions = document.getElementById('actions');
+			const actionHandlers = {
+				btn_startStop: () => {
+					if (state === stop) startTimer(gui);
+					else if (state === running) stopTimer(gui);
+				},
+				btn_continue: () => continueTimer(gui),
+				btn_20sec: () => setDuration(gui, 20),
+				btn_30sec: () => setDuration(gui, 30),
+			};
 			actions.addEventListener('click', event => {
-				if (event.target.closest('.ripple-button')) {
-					const button = event.target.closest('.ripple-button');
-					const ripple = document.createElement('span');
-					const rect = button.getBoundingClientRect();
-					const size = Math.max(rect.width, rect.height);
-					const x = event.clientX - rect.left - size / 2;
-					const y = event.clientY - rect.top - size / 2;
-
-					ripple.style.width = ripple.style.height = `${size}px`;
-					ripple.style.left = `${x}px`;
-					ripple.style.top = `${y}px`;
-
-					ripple.classList.add('ripple');
-					button.appendChild(ripple);
-
-					ripple.addEventListener('animationend', () => {
-						ripple.remove();
-					});
-				}
-
-				switch (event.target.id) {
-					case 'btn_startStop':
-						if (state === stop) startTimer(gui);
-						else if (state === running) stopTimer(gui);
-						break;
-					case 'btn_continue':
-						continueTimer(gui);
-						break;
-					case 'btn_20sec':
-						setDuration(gui, 20);
-						break;
-					case 'btn_30sec':
-						setDuration(gui, 30);
-						break;
+				const handler = actionHandlers[event.target.id];
+				if (handler) {
+					handler();
 				}
 			});
 
 			const options = document.getElementById('options');
 			options.style.visibility = 'hidden';
 
+			const subActionHandlers = {
+				btn_options: () => {
+					const isHidden = options.style.visibility === 'hidden';
+					options.style.visibility = isHidden ? 'visible' : 'hidden';
+					document.body.style.overflowY = isHidden ? 'scroll' : 'hidden';
+				},
+				btn_panic: () => resetTimer(gui),
+				// btn_help is intentionally omitted as it has no action
+			};
 			const subActions = document.getElementById('subActions');
 			subActions.addEventListener('click', event => {
-				switch (event.target.id) {
-					case 'btn_options':
-						// toggle options visibility
-						if (options.style.visibility === 'hidden') {
-							options.style.visibility = 'visible';
-							document.body.style.overflowY = 'scroll';
-						} else {
-							options.style.visibility = 'hidden';
-							document.body.style.overflowY = 'hidden';
-						}
-						break;
-					case 'btn_panic':
-						resetTimer(gui);
-						break;
-					case 'btn_help':
-						break;
+				const handler = subActionHandlers[event.target.id];
+				if (handler) {
+					handler();
 				}
 			});
 
@@ -143,24 +117,22 @@ document.onreadystatechange = async () => {
 
 			// add listeners to size buttons
 			const buttons_timerSize = document.getElementById('timerSize');
+			const sizeAdjustments = {
+				btn_timerSizeMinus: { value: -1, condition: () => canvas.height > 0 },
+				btn_timerSizePlus: { value: 1 },
+				btn_timerSizeMinusFast: {
+					value: -5,
+					condition: () => canvas.height > 4,
+				},
+				btn_timerSizePlusFast: { value: 5 },
+			};
 			buttons_timerSize.addEventListener('click', event => {
-				let value;
-				switch (event.target.id) {
-					case 'btn_timerSizeMinus':
-						if (canvas.height > 0) value = -1;
-						break;
-					case 'btn_timerSizePlus':
-						value = 1;
-						break;
-					case 'btn_timerSizeMinusFast':
-						if (canvas.height > 4) value = -5;
-						break;
-					case 'btn_timerSizePlusFast':
-						value = 5;
-						break;
+				const adjustment = sizeAdjustments[event.target.id];
+				if (!adjustment || (adjustment.condition && !adjustment.condition())) {
+					return;
 				}
-				if (value === undefined) return;
-				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
+
+				quiztimerOptions.boxSize += adjustment.value;
 				// initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);
 				localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
@@ -198,6 +170,21 @@ document.onreadystatechange = async () => {
 			drawImage(gui.canvas, gui.ctx, duration);
 		}
 		//--------------------------------------------------------------------
+		const positionCalculators = {
+			posTopLeft: () => ({ x: 0, y: 0 }),
+			posTopRight: gui => ({
+				x: videoSize.width - gui.canvas.width,
+				y: 0,
+			}),
+			posBottomLeft: gui => ({
+				x: 0,
+				y: videoSize.height - gui.canvas.height,
+			}),
+			posBottomRight: gui => ({
+				x: videoSize.width - gui.canvas.width,
+				y: videoSize.height - gui.canvas.height,
+			}),
+		};
 		/**
 		 * Sets the position based on the event target ID within the GUI.
 		 *
@@ -205,24 +192,9 @@ document.onreadystatechange = async () => {
 		 * @param {Object} gui - The GUI object containing canvas and context information.
 		 */
 		async function setPosition(position, gui) {
-			switch (position) {
-				case 'posTopLeft':
-					quiztimerOptions.x = 0;
-					quiztimerOptions.y = 0;
-					break;
-				case 'posTopRight':
-					quiztimerOptions.x = videoSize.width - gui.canvas.width;
-					quiztimerOptions.y = 0;
-					break;
-				case 'posBottomLeft':
-					quiztimerOptions.x = 0;
-					quiztimerOptions.y = videoSize.height - gui.canvas.height;
-
-					break;
-				case 'posBottomRight':
-					quiztimerOptions.x = videoSize.width - gui.canvas.width;
-					quiztimerOptions.y = videoSize.height - gui.canvas.height;
-					break;
+			const calculator = positionCalculators[position];
+			if (calculator) {
+				Object.assign(quiztimerOptions, calculator(gui));
 			}
 			initCanvas(gui);
 			drawImage(gui.canvas, gui.ctx, duration);
