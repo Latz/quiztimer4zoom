@@ -34,6 +34,9 @@
 				min-width: 30px;
 				text-align: center;
 			}
+			body:not(.options-open) {
+				overflow-y: hidden;
+			}
 		</style>
 	</head>
 	<body>
@@ -54,7 +57,6 @@
 			</div>
 
 			<div id="options">
-				<hr />
 				<details id="position">
 					<summary class="smallHeading">Position</summary>
 					<div id="corners">
@@ -66,7 +68,6 @@
 						</div>
 					</div>
 				</details>
-				<hr />
 
 				<details>
 					<summary class="smallHeading">Timer size</summary>
@@ -99,7 +100,6 @@
 						</button>
 					</div>
 				</details>
-				<hr />
 				<details>
 					<summary class="smallHeading">Color</summary>
 					<div class="colorHeading">Standard</div>
@@ -113,8 +113,8 @@
 							<div>
 								<input type="color" id="colorSelectorBackgroundStandard" />
 							</div>
-							<div class="number">Number</div>
-							<div class="Background">Background</div>
+							<div class="number">Foreground</div>
+							<div class="background">Background</div>
 							<div class="example" id="colorSelectorExampleStandard">20</div>
 						</section>
 					</div>
@@ -129,8 +129,8 @@
 							<div>
 								<input type="color" id="colorSelectorBackgroundWarning" />
 							</div>
-							<div class="number">Number</div>
-							<div class="Background">Background</div>
+							<div class="number">Foreground</div>
+							<div class="background">Background</div>
 							<div class="example" id="colorSelectorExampleWarning">20</div>
 						</section>
 					</div>
@@ -145,8 +145,8 @@
 							<div>
 								<input type="color" id="colorSelectorBackgroundTimeout" />
 							</div>
-							<div class="number">Number</div>
-							<div class="Background">Background</div>
+							<div class="number">Foreground</div>
+							<div class="background">Background</div>
 							<div class="example" id="colorSelectorExampleTimeout">20</div>
 						</section>
 					</div>

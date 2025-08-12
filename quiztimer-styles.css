@@ -70,25 +70,71 @@ body {
 	margin: 0 auto;
 }
 
-#posTopLeft {
-	cursor: pointer;
-	font-size: 30px;
-	place-self: center;
-}
-
-#posTopRight {
-	font-size: 30px;
-	cursor: pointer;
-}
-
+#posTopLeft,
+#posTopRight,
+#posBottomLeft,
 #posBottomRight {
-	font-size: 30px;
 	cursor: pointer;
+	font-size: 20px;
+	width: 40px;
+	height: 40px;
+	border: 2px solid #e0e0e0;
+	border-radius: 8px;
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+	color: #495057;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease-in-out;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	user-select: none;
+	position: relative;
+	overflow: hidden;
 }
-#posBottomLeft {
-	font-size: 30px;
 
-	cursor: pointer;
+#posTopLeft:hover,
+#posTopRight:hover,
+#posBottomLeft:hover,
+#posBottomRight:hover {
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+	border-color: #007bff;
+	color: #007bff;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+}
+
+#posTopLeft:active,
+#posTopRight:active,
+#posBottomLeft:active,
+#posBottomRight:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+	background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+/* Add subtle ripple effect on click */
+#posTopLeft::before,
+#posTopRight::before,
+#posBottomLeft::before,
+#posBottomRight::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	border-radius: 50%;
+	background: rgba(0, 123, 255, 0.3);
+	transform: translate(-50%, -50%);
+	transition: width 0.3s, height 0.3s;
+}
+
+#posTopLeft:active::before,
+#posTopRight:active::before,
+#posBottomLeft:active::before,
+#posBottomRight:active::before {
+	width: 60px;
+	height: 60px;
 }
 
 #posMoveUp {
@@ -200,18 +246,55 @@ body {
 }
 
 .btn_timerSize {
-	border: 1px solid buttonborder;
 	cursor: pointer;
+	font-size: 20px;
+	width: 40px;
+	height: 40px;
+	border: 2px solid #e0e0e0;
+	border-radius: 8px;
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+	color: #495057;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease-in-out;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	user-select: none;
-	appearance: button;
-	padding: 0;
-	background-color: buttonface;
-	border-radius: 2px;
+	position: relative;
+	overflow: hidden;
 }
 
 .btn_timerSize:hover {
-	transition: background-color 0.3s ease-in-out;
-	background-color: silver;
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+	border-color: #007bff;
+	color: #007bff;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+}
+
+.btn_timerSize:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+	background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+/* Add subtle ripple effect on click */
+.btn_timerSize::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	border-radius: 50%;
+	background: rgba(0, 123, 255, 0.3);
+	transform: translate(-50%, -50%);
+	transition: width 0.3s, height 0.3s;
+}
+
+.btn_timerSize:active::before {
+	width: 60px;
+	height: 60px;
 }
 
 .headingSmall {
@@ -233,28 +316,106 @@ body {
 	margin-bottom: 10px;
 }
 
+.colorcontainer input[type='color'] {
+	cursor: pointer;
+	width: 40px;
+	height: 40px;
+	border: 2px solid #e0e0e0;
+	border-radius: 8px;
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease-in-out;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	user-select: none;
+	position: relative;
+	overflow: hidden;
+	padding: 0;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+}
+
+.colorcontainer input[type='color']:hover {
+	border-color: #007bff;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+}
+
+.colorcontainer input[type='color']:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+}
+
+.colorcontainer input[type='color']::-webkit-color-swatch-wrapper {
+	padding: 0;
+	border: none;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.colorcontainer input[type='color']::-webkit-color-swatch {
+	border: none;
+	border-radius: 6px;
+}
+
+.colorcontainer input[type='color']::-moz-color-swatch {
+	border: none;
+	border-radius: 6px;
+}
+
 .colorHeading {
-	text-decoration: underline;
+	font-size: 11px;
+	font-weight: bold;
+	color: #868e96;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	text-align: left;
+	padding-left: 2px;
+	margin-bottom: 8px;
+	margin-top: 15px;
 }
 
 .selector1 {
 	grid-area: selector1;
-}
-.number {
-	grid-area: number;
-	justify-self: start;
 }
 .example {
 	grid-area: example;
 	font-size: 40px;
 	font-family: Arial, Helvetica, sans-serif;
 	font-weight: bold;
-	border: 1px solid black;
-	padding: 2px;
+	border: 2px solid #e0e0e0;
+	border-radius: 8px;
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+	color: #495057;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	user-select: none;
+	position: relative;
+	overflow: hidden;
+	padding: 8px;
+	min-width: 60px;
+	min-height: 60px;
 }
 .selector2 {
 	grid-area: selector2;
 }
+.number,
+.background {
+	justify-self: start;
+	font-size: 12px;
+	color: #6c757d;
+	align-self: center;
+	padding-left: 5px;
+}
+
+.number {
+	grid-area: number;
+}
+
 .background {
 	grid-area: background;
 }

@@ -39,6 +39,7 @@ document.onreadystatechange = async () => {
 
 		const btnStartStop = document.getElementById('btn_startStop');
 		const btnContinue = document.getElementById('btn_continue');
+		const progressbar = document.getElementById('countdown');
 		// --------------------------------------------------------------------
 		const gui = initGui();
 		await initZoomSdk(gui);
@@ -191,11 +192,29 @@ document.onreadystatechange = async () => {
 		 * @param {Event} event - The event triggering the position change.
 		 * @param {Object} gui - The GUI object containing canvas and context information.
 		 */
+<<<<<<< HEAD
 		async function setPosition(position, gui) {
 			const calculator = positionCalculators[position];
 			if (calculator) {
 				Object.assign(quiztimerOptions, calculator(gui));
+=======
+		function setPosition(position, gui) {
+			const { width: videoWidth, height: videoHeight } = videoSize;
+			const { width: canvasWidth, height: canvasHeight } = gui.canvas;
+
+			if (position.includes('Left')) {
+				quiztimerOptions.x = 0;
+			} else if (position.includes('Right')) {
+				quiztimerOptions.x = videoWidth - canvasWidth;
+>>>>>>> origin/main
 			}
+
+			if (position.includes('Top')) {
+				quiztimerOptions.y = 0;
+			} else if (position.includes('Bottom')) {
+				quiztimerOptions.y = videoHeight - canvasHeight;
+			}
+
 			initCanvas(gui);
 			drawImage(gui.canvas, gui.ctx, duration);
 			quiztimerOptions.position = position;
@@ -292,77 +311,76 @@ document.onreadystatechange = async () => {
 
 		// ----------------------------------------------------------------------------------------------------
 		function getColors(time) {
-			let bgColor = `${quiztimerOptions.backgroundStandard}`;
-			let fgColor = quiztimerOptions.numberStandard;
-			if (time <= 5) {
-				fgColor = quiztimerOptions.numberWarning;
-				bgColor = `${quiztimerOptions.backgroundWarning}`;
-			}
 			if (time === 0) {
-				fgColor = quiztimerOptions.numberTimeout;
-				bgColor = `${quiztimerOptions.backgroundTimeout}`;
+				return {
+					fgColor: quiztimerOptions.numberTimeout,
+					bgColor: quiztimerOptions.backgroundTimeout,
+				};
 			}
-			return { fgColor, bgColor };
+			if (time <= 5) {
+				return {
+					fgColor: quiztimerOptions.numberWarning,
+					bgColor: quiztimerOptions.backgroundWarning,
+				};
+			}
+			return {
+				fgColor: quiztimerOptions.numberStandard,
+				bgColor: quiztimerOptions.backgroundStandard,
+			};
 		}
 
 		// ----------------------------------------------------------------------------------------------------
 		function calcFontsize(fontFamily) {
-			// create virtual canvas
-			const virtualCanvas = document.createElement('canvas');
-			const virtualCtx = virtualCanvas.getContext('2d');
+			// Reuse virtual canvas if it exists
+			if (!calcFontsize.virtualCanvas) {
+				calcFontsize.virtualCanvas = document.createElement('canvas');
+				calcFontsize.virtualCtx = calcFontsize.virtualCanvas.getContext('2d');
+			}
+
+			const virtualCanvas = calcFontsize.virtualCanvas;
+			const virtualCtx = calcFontsize.virtualCtx;
+
 			virtualCanvas.width = quiztimerOptions.boxSize;
 			virtualCanvas.height = quiztimerOptions.boxSize;
 
 			const text = '88';
-			const paddingPercent = 5; // Padding as percentage of text size
-			const cornerRadius = 15; // Radius for rounded corners
+			const paddingPercent = 5;
 
-			// Set initial font to measure
-			virtualCtx.font = `bold 10px ${fontFamily}`;
+			// Cache font string
+			const baseFontString = `bold 10px ${fontFamily}`;
+			virtualCtx.font = baseFontString;
 
-			// Measure the text
+			// Get initial measurements
 			const metrics = virtualCtx.measureText(text);
 			const textHeight =
 				metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-			// Set canvas width and adjust height to match text height
-			// canvas.width = canvasWidth;
-			virtualCanvas.height =
-				textHeight + ((textHeight * paddingPercent) / 100) * 2;
 
-			// Clear the virtualCanvas
-			virtualCtx.clearRect(0, 0, virtualCanvas.width, virtualCanvas.height);
-
-			// Apply rounded corners to virtualCanvas element via CSS
-			virtualCanvas.style.borderRadius = `${cornerRadius}px`;
-
-			// Binary search to find largest possible font size that fits the width
+			// Binary search with fewer iterations
 			let minSize = 10;
-			let maxSize = 1000;
-			let bestFontSize = 0;
+			let maxSize = Math.min(500, quiztimerOptions.boxSize); // Cap max size
+			let bestFontSize = minSize;
 
-			while (maxSize - minSize > 1) {
-				bestFontSize = Math.floor((minSize + maxSize) / 2);
-				virtualCtx.font = `bold ${bestFontSize}px ${fontFamily}`;
+			while (maxSize - minSize > 0.5) {
+				const testSize = Math.floor((minSize + maxSize) / 2);
+				virtualCtx.font = `bold ${testSize}px ${fontFamily}`;
 
-				const newMetrics = virtualCtx.measureText(text);
-				const newTextWidth = newMetrics.width;
-				const newTextHeight =
-					newMetrics.actualBoundingBoxAscent +
-					newMetrics.actualBoundingBoxDescent;
-				const padding = (newTextHeight * paddingPercent) / 100;
+				const testMetrics = virtualCtx.measureText(text);
+				const testWidth = testMetrics.width;
+				const testHeight =
+					testMetrics.actualBoundingBoxAscent +
+					testMetrics.actualBoundingBoxDescent;
+				const padding = (testHeight * paddingPercent) / 100;
 
-				if (newTextWidth + padding * 2 <= virtualCanvas.width) {
-					minSize = bestFontSize;
+				if (testWidth + padding * 2 <= virtualCanvas.width) {
+					minSize = testSize;
+					bestFontSize = testSize;
 				} else {
-					maxSize = bestFontSize;
+					maxSize = testSize;
 				}
 			}
 
-			// Use the found size
-			bestFontSize = minSize;
-			virtualCtx.font = `bold  ${bestFontSize}px ${fontFamily}`;
-
-			// Measure the text with final font size
+			// Set final font and get measurements
+			virtualCtx.font = `bold ${bestFontSize}px ${fontFamily}`;
 			const finalMetrics = virtualCtx.measureText(text);
 			const finalTextWidth = finalMetrics.width;
 			const finalTextHeight =
@@ -370,14 +388,12 @@ document.onreadystatechange = async () => {
 				finalMetrics.actualBoundingBoxDescent;
 			const padding = (finalTextHeight * paddingPercent) / 100;
 
-			// Resize virtualCanvas height to match the text height with the new font size
-			virtualCanvas.height = finalTextHeight + padding * 2;
-
-			// Calculate position to center text horizontally
+			// Calculate centered position
 			const x = (virtualCanvas.width - finalTextWidth) / 2;
 			const y = finalMetrics.actualBoundingBoxAscent + padding;
+			const canvasHeight = finalTextHeight + padding * 2;
 
-			return [x, y, bestFontSize, virtualCanvas.width, virtualCanvas.height];
+			return [x, y, bestFontSize, virtualCanvas.width, canvasHeight];
 		}
 		// ----------------------------------------------------------------------------------------------------
 		function initCanvas(gui) {
@@ -482,7 +498,6 @@ document.onreadystatechange = async () => {
 			clearInterval(timedResetId);
 
 			// Reset the progress bar
-			const progressbar = document.getElementById('countdown');
 			progressbar.value = progressbar.max;
 
 			// Start the timer with the remaining time
@@ -492,7 +507,6 @@ document.onreadystatechange = async () => {
 		function timedReset(gui) {
 			const timeout = 5000;
 
-			const progressbar = document.getElementById('countdown');
 			progressbar.value = progressbar.max;
 			const chunk = timeout / 10;
 			timedResetId = setInterval(() => {
@@ -571,116 +585,51 @@ document.onreadystatechange = async () => {
 		// === Options ============================================================================================
 		// ========================================================================================================
 
-		// ------------------------------------------------------------------------------------
 		// setup custom events for color selectors
-
-		// --- colorSelectorNumberStandard -------------------------------------------------------
-		const colorSelectorNumberStandard = document.getElementById(
-			'colorSelectorNumberStandard'
-		);
-
-		const colorSelectorBackgroundStandard = document.getElementById(
-			'colorSelectorBackgroundStandard'
-		);
-
-		const colorSelectorExampleStandard = document.getElementById(
-			'colorSelectorExampleStandard'
-		);
 
 		// close color picker when color selector is clicked
 		document.addEventListener('colorpickeropen', e => {
 			console.log('colorpickeropen', e);
 		});
 
-		//--- set color selectors
-		colorSelectorNumberStandard.value = quiztimerOptions.numberStandard;
-		colorSelectorBackgroundStandard.value = quiztimerOptions.backgroundStandard;
-		colorSelectorExampleStandard.style.color = quiztimerOptions.numberStandard;
-		colorSelectorExampleStandard.style.backgroundColor =
-			quiztimerOptions.backgroundStandard;
+		function setupColorSelector(state, gui) {
+			const numberSelector = document.getElementById(
+				`colorSelectorNumber${state}`
+			);
+			const backgroundSelector = document.getElementById(
+				`colorSelectorBackground${state}`
+			);
+			const exampleElement = document.getElementById(
+				`colorSelectorExample${state}`
+			);
 
-		colorSelectorNumberStandard.addEventListener('change', e => {
-			saveOption('numberStandard', e.target.value, gui);
-		});
+			const numberOption = `number${state}`;
+			const backgroundOption = `background${state}`;
 
-		colorSelectorNumberStandard.addEventListener('change', e => {
-			saveOption('numberStandard', e.target.value, gui);
-		});
-		colorSelectorNumberStandard.addEventListener('input', e => {
-			colorSelectorExampleStandard.style.color = e.target.value;
-		});
+			//--- set color selectors
+			numberSelector.value = quiztimerOptions[numberOption];
+			backgroundSelector.value = quiztimerOptions[backgroundOption];
+			exampleElement.style.color = quiztimerOptions[numberOption];
+			exampleElement.style.backgroundColor = quiztimerOptions[backgroundOption];
 
-		colorSelectorBackgroundStandard.addEventListener('change', e => {
-			saveOption('backgroundStandard', e.target.value, gui);
-		});
-		colorSelectorBackgroundStandard.addEventListener('input', e => {
-			colorSelectorExampleStandard.style.backgroundColor = e.target.value;
-		});
+			numberSelector.addEventListener('change', e => {
+				saveOption(numberOption, e.target.value, gui);
+			});
+			numberSelector.addEventListener('input', e => {
+				exampleElement.style.color = e.target.value;
+			});
 
-		// --- colorSelectorNumberWarning -------------------------------------------------------
-		const colorSelectorNumberWarning = document.getElementById(
-			'colorSelectorNumberWarning'
+			backgroundSelector.addEventListener('change', e => {
+				saveOption(backgroundOption, e.target.value, gui);
+			});
+			backgroundSelector.addEventListener('input', e => {
+				exampleElement.style.backgroundColor = e.target.value;
+			});
+		}
+
+		['Standard', 'Warning', 'Timeout'].forEach(state =>
+			setupColorSelector(state, gui)
 		);
-		const colorSelectorBackgroundWarning = document.getElementById(
-			'colorSelectorBackgroundWarning'
-		);
-
-		const colorSelectorExampleWarning = document.getElementById(
-			'colorSelectorExampleWarning'
-		);
-
-		// set color selectors
-		colorSelectorNumberWarning.value = quiztimerOptions.numberWarning;
-		colorSelectorBackgroundWarning.value = quiztimerOptions.backgroundWarning;
-		colorSelectorExampleWarning.style.color = quiztimerOptions.numberWarning;
-		colorSelectorExampleWarning.style.backgroundColor =
-			quiztimerOptions.backgroundWarning;
-
-		colorSelectorNumberWarning.addEventListener('change', e => {
-			saveOption('numberWarning', e.target.value, gui);
-		});
-		colorSelectorNumberWarning.addEventListener('input', e => {
-			colorSelectorExampleWarning.style.color = e.target.value;
-		});
-
-		colorSelectorBackgroundWarning.addEventListener('change', e => {
-			saveOption('backgroundWarning', e.target.value, gui);
-		});
-		colorSelectorBackgroundWarning.addEventListener('input', e => {
-			colorSelectorExampleWarning.style.backgroundColor = e.target.value;
-		});
-		// --- colorSelectorNumberTimeout -------------------------------------------------------
-		const colorSelectorNumberTimeout = document.getElementById(
-			'colorSelectorNumberTimeout'
-		);
-		const colorSelectorBackgroundTimeout = document.getElementById(
-			'colorSelectorBackgroundTimeout'
-		);
-
-		const colorSelectorExampleTimeout = document.getElementById(
-			'colorSelectorExampleTimeout'
-		);
-
-		// set color selectors
-		colorSelectorNumberTimeout.value = quiztimerOptions.numberTimeout;
-		colorSelectorBackgroundTimeout.value = quiztimerOptions.backgroundTimeout;
-		colorSelectorExampleTimeout.style.color = quiztimerOptions.numberTimeout;
-		colorSelectorExampleTimeout.style.backgroundColor =
-			quiztimerOptions.backgroundTimeout;
-
-		colorSelectorNumberTimeout.addEventListener('change', e => {
-			saveOption('numberTimeout', e.target.value, gui);
-		});
-		colorSelectorNumberTimeout.addEventListener('input', e => {
-			colorSelectorExampleTimeout.style.color = e.target.value;
-		});
-
-		colorSelectorBackgroundTimeout.addEventListener('change', e => {
-			saveOption('backgroundTimeout', e.target.value, gui);
-		});
-		colorSelectorBackgroundTimeout.addEventListener('input', e => {
-			colorSelectorExampleTimeout.style.backgroundColor = e.target.value;
-		});
 
 		function saveOption(optionName, optionValue, gui) {
 			quiztimerOptions[optionName] = optionValue;
