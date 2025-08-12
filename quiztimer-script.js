@@ -171,49 +171,24 @@ document.onreadystatechange = async () => {
 			drawImage(gui.canvas, gui.ctx, duration);
 		}
 		//--------------------------------------------------------------------
-		const positionCalculators = {
-			posTopLeft: () => ({ x: 0, y: 0 }),
-			posTopRight: gui => ({
-				x: videoSize.width - gui.canvas.width,
-				y: 0,
-			}),
-			posBottomLeft: gui => ({
-				x: 0,
-				y: videoSize.height - gui.canvas.height,
-			}),
-			posBottomRight: gui => ({
-				x: videoSize.width - gui.canvas.width,
-				y: videoSize.height - gui.canvas.height,
-			}),
-		};
+
 		/**
 		 * Sets the position based on the event target ID within the GUI.
 		 *
 		 * @param {Event} event - The event triggering the position change.
 		 * @param {Object} gui - The GUI object containing canvas and context information.
 		 */
-<<<<<<< HEAD
-		async function setPosition(position, gui) {
-			const calculator = positionCalculators[position];
-			if (calculator) {
-				Object.assign(quiztimerOptions, calculator(gui));
-=======
 		function setPosition(position, gui) {
 			const { width: videoWidth, height: videoHeight } = videoSize;
 			const { width: canvasWidth, height: canvasHeight } = gui.canvas;
 
-			if (position.includes('Left')) {
-				quiztimerOptions.x = 0;
-			} else if (position.includes('Right')) {
+			if (position.includes('Left')) quiztimerOptions.x = 0;
+			if (position.includes('Right'))
 				quiztimerOptions.x = videoWidth - canvasWidth;
->>>>>>> origin/main
-			}
 
-			if (position.includes('Top')) {
-				quiztimerOptions.y = 0;
-			} else if (position.includes('Bottom')) {
+			if (position.includes('Top')) quiztimerOptions.y = 0;
+			if (position.includes('Bottom'))
 				quiztimerOptions.y = videoHeight - canvasHeight;
-			}
 
 			initCanvas(gui);
 			drawImage(gui.canvas, gui.ctx, duration);
