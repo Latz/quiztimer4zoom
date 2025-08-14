@@ -1,4 +1,5 @@
 // index.js
+
 import express from 'express';
 import cookieSession from 'cookie-session';
 import { getInstallURL, getToken, getDeeplink } from '../scripts/zoom-api.js';
@@ -98,3 +99,5 @@ if (os.hostname() === 'pascal' && !app) {
 		console.log(`Server running on port ${port}`);
 	});
 }
+
+console.log('end of init api/index.js');
