@@ -51,11 +51,11 @@ body:not(.options-open) {
 	overflow: hidden;
 }
 
-#btn_continue:disabled {
+#btn_continue.progress-button:disabled {
 	cursor: not-allowed;
 }
 
-#btn_continue:not(:disabled) {
+#btn_continue.progress-button:not(:disabled) {
 	cursor: pointer;
 }
 
