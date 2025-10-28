@@ -1,159 +1,137 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 	<head>
-		<script type="text/javascript" src="/scripts/sdk.js"></script>
-		<script src="/quiztimer-script.js" type="module"></script>
-
-		<link rel="stylesheet" href="/quiztimer-styles.css" />
-		<title>Quiztimer 4 Zoom</title>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="description" content="Quiz Timer für Zoom Meetings - Zeigt einen Countdown auf dem Videobild" />
+		<meta name="theme-color" content="#000000" />
 		<meta name="referrer" content="no-referrer" />
-		<style>
-			summary.smallHeading {
-				text-align: left;
-				cursor: pointer;
-			}
-			#timerSize {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 2px;
-			}
-			.btn_timerSize {
-				background-color: #f0f0f0;
-				border: 1px solid #ccc;
-				border-radius: 4px;
-				padding: 2px 5px;
-				min-inline-size: 44px; /* width */
-				min-block-size: 36px; /* height – can be tweaked */
-				cursor: pointer;
-				font-weight: bold;
-			}
-			.btn_timerSize:hover {
-				background-color: #e0e0e0;
-			}
-			#val_timerSize_container {
-				min-width: 30px;
-				text-align: center;
-			}
-			body:not(.options-open) {
-				overflow-y: hidden;
-			}
-		</style>
+		<title>Quiztimer4Zoom</title>
+		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+		<!-- Preload critical resources -->
+		<link rel="preload" href="/styles.css" as="style" />
+
+		<!-- Stylesheets -->
+		<link rel="stylesheet" href="/styles.css" />
+
+		<!-- Scripts -->
+		<script src="/sdk.js"></script>
+		<script src="/quiztimer-script.js" type="module"></script>
 	</head>
 	<body>
 		<div id="container">
-			<div id="actions">
+			<!-- Main timer controls -->
+			<section id="actions" role="group" aria-label="Timer Steuerung">
 				<div class="div1">
-					<button id="btn_startStop" class="ripple-button">Start</button>
+					<button id="btn_startStop" class="ripple-button" aria-label="Start oder Stop des Timers">Start</button>
 				</div>
-				<div class="div2"><button id="btn_continue">Continue</button></div>
-				<div class="div3"><button id="btn_20sec">20 Sek.</button></div>
-				<div class="div4"><button id="btn_30sec">30 Sek.</button></div>
-			</div>
-			<div id="subActions">
-				<progress id="countdown" max="100" value="100"></progress>
-				<span title="Options" id="btn_options">🛠️</span>
-				<span title="About" id="btn_help">❓</span>
-				<span title="Reset timer" id="btn_panic">💥</span>
-			</div>
+				<div class="div2">
+					<button id="btn_continue" class="progress-button" aria-label="Timer fortsetzen">
+						<span class="button-text">Weiter</span>
+						<span class="progress-fill"></span>
+					</button>
+				</div>
+				<div class="div3">
+					<button id="btn_20sec" aria-label="Timer auf 20 Sekunden setzen">20 Sek.</button>
+				</div>
+				<div class="div4">
+					<button id="btn_30sec" aria-label="Timer auf 30 Sekunden setzen">30 Sek.</button>
+				</div>
+			</section>
 
-			<div id="options">
+			<!-- Secondary actions -->
+			<section id="subActions" role="group" aria-label="Zusätzliche Aktionen">
+				<button title="Optionen" id="btn_options" aria-label="Optionen öffnen">🛠️</button>
+				<button title="Über Quiztimer4Zoom" id="btn_help" aria-label="Hilfe anzeigen">❓</button>
+				<button title="Panik! Timer zurücksetzen" id="btn_panic" aria-label="Timer zurücksetzen">💥</button>
+			</section>
+
+			<!-- Options panel -->
+			<aside id="options" aria-label="Einstellungen">
 				<details id="position">
 					<summary class="smallHeading">Position</summary>
 					<div id="corners">
 						<div id="positionCorners">
-							<button id="posTopLeft">🡤</button>
-							<button id="posTopRight">🡥</button>
-							<button id="posBottomLeft">🡧</button>
-							<button id="posBottomRight">🡦</button>
+							<button id="posTopLeft" aria-label="Position oben links">🡤</button>
+							<button id="posTopRight" aria-label="Position oben rechts">🡥</button>
+							<button id="posBottomLeft" aria-label="Position unten links">🡧</button>
+							<button id="posBottomRight" aria-label="Position unten rechts">🡦</button>
 						</div>
 					</div>
 				</details>
 
 				<details>
-					<summary class="smallHeading">Timer size</summary>
-
+					<summary class="smallHeading">Timer Größe</summary>
 					<div id="timerSize">
-						<button
-							class="btn_timerSize"
-							id="btn_timerSizeMinusFast"
-							title="Smaller fast"
-						>
-							&lt;&lt;
-						</button>
-						<button
-							class="btn_timerSize"
-							id="btn_timerSizeMinus"
-							title="Smaller"
-						>
-							&lt;
-						</button>
-						<span id="val_timerSize_container"> </span>
-						<button class="btn_timerSize" id="btn_timerSizePlus" title="Bigger">
-							&gt;
-						</button>
-						<button
-							class="btn_timerSize"
-							id="btn_timerSizePlusFast"
-							title="Bigger fast"
-						>
-							&gt;&gt;
-						</button>
+						<button class="btn_timerSize" id="btn_timerSizeMinusFast" title="Viel kleiner">&lt;&lt;</button>
+						<button class="btn_timerSize" id="btn_timerSizeMinus" title="Kleiner">&lt;</button>
+						<span id="val_timerSize_container" aria-live="polite"></span>
+						<button class="btn_timerSize" id="btn_timerSizePlus" title="Größer">&gt;</button>
+						<button class="btn_timerSize" id="btn_timerSizePlusFast" title="Viel größer">&gt;&gt;</button>
 					</div>
 				</details>
-				<details>
-					<summary class="smallHeading">Color</summary>
-					<div class="colorHeading">Standard</div>
 
+				<details>
+					<summary class="smallHeading">Farben</summary>
+
+					<div class="colorHeading">Standard</div>
 					<div class="colorcontainer">
 						<section class="colorcontainer">
-							<!-- Standard -->
 							<div>
-								<input type="color" id="colorSelectorNumberStandard" />
+								<label for="colorSelectorNumberStandard" class="sr-only">Ziffernfarbe Standard</label>
+								<input type="color" id="colorSelectorNumberStandard" aria-label="Ziffernfarbe Standard" />
 							</div>
 							<div>
-								<input type="color" id="colorSelectorBackgroundStandard" />
+								<label for="colorSelectorBackgroundStandard" class="sr-only">Hintergrundfarbe Standard</label>
+								<input type="color" id="colorSelectorBackgroundStandard" aria-label="Hintergrundfarbe Standard" />
 							</div>
-							<div class="number">Foreground</div>
-							<div class="background">Background</div>
-							<div class="example" id="colorSelectorExampleStandard">20</div>
+							<div class="number">Ziffern</div>
+							<div class="background">Hintergrund</div>
+							<div class="example" id="colorExampleStandard" aria-label="Farbvoransicht Standard">20</div>
 						</section>
 					</div>
 
-					<div class="colorHeading">Warning</div>
+					<div class="colorHeading">Warnung</div>
 					<div class="colorcontainer">
 						<section class="colorcontainer">
-							<!-- Warning -->
 							<div>
-								<input type="color" id="colorSelectorNumberWarning" />
+								<label for="colorSelectorNumberWarning" class="sr-only">Ziffernfarbe Warnung</label>
+								<input type="color" id="colorSelectorNumberWarning" aria-label="Ziffernfarbe Warnung" />
 							</div>
 							<div>
-								<input type="color" id="colorSelectorBackgroundWarning" />
+								<label for="colorSelectorBackgroundWarning" class="sr-only">Hintergrundfarbe Warnung</label>
+								<input type="color" id="colorSelectorBackgroundWarning" aria-label="Hintergrundfarbe Warnung" />
 							</div>
-							<div class="number">Foreground</div>
-							<div class="background">Background</div>
-							<div class="example" id="colorSelectorExampleWarning">20</div>
+							<div class="number">Ziffern</div>
+							<div class="background">Hintergrund</div>
+							<div class="example" id="colorExampleWarning" aria-label="Farbvoransicht Warnung">20</div>
 						</section>
 					</div>
 
 					<div class="colorHeading">Timeout</div>
 					<div class="colorcontainer">
 						<section class="colorcontainer">
-							<!-- Warning -->
 							<div>
-								<input type="color" id="colorSelectorNumberTimeout" />
+								<label for="colorSelectorNumberTimeout" class="sr-only">Ziffernfarbe Timeout</label>
+								<input type="color" id="colorSelectorNumberTimeout" aria-label="Ziffernfarbe Timeout" />
 							</div>
 							<div>
-								<input type="color" id="colorSelectorBackgroundTimeout" />
+								<label for="colorSelectorBackgroundTimeout" class="sr-only">Hintergrundfarbe Timeout</label>
+								<input type="color" id="colorSelectorBackgroundTimeout" aria-label="Hintergrundfarbe Timeout" />
 							</div>
-							<div class="number">Foreground</div>
-							<div class="background">Background</div>
-							<div class="example" id="colorSelectorExampleTimeout">20</div>
+							<div class="number">Ziffern</div>
+							<div class="background">Hintergrund</div>
+							<div class="example" id="colorExampleTimeout" aria-label="Farbvoransicht Timeout">20</div>
 						</section>
 					</div>
 				</details>
+
 				<hr />
-			</div>
+			</aside>
 		</div>
+
+		<!-- Screen reader only text for better accessibility -->
+		<div class="sr-only" id="sr-announcements" aria-live="assertive" aria-atomic="true"></div>
 	</body>
 </html>

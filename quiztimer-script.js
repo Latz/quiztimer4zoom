@@ -1,29 +1,45 @@
-let quiztimerOptions = JSON.parse(localStorage.getItem('quiztimer'));
-if (!quiztimerOptions) {
-	quiztimerOptions = {
-		position: 'TopRight', // TopLeft, TopRight, BottomLeft, BottomRight
-		boxSize: 300,
-		numberStandard: '#000000',
-		numberWarning: '#000000',
-		numberTimeout: '#000000',
-		backgroundStandard: '#ffffff',
-		backgroundWarning: '#ffff00',
-		backgroundTimeout: '#ff0000',
-		textX: 0,
-		textY: 0,
-		x: 0,
-		y: 0,
-	};
-	localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
-}
+// --------------------------------------------------------------------------------
+// load options from local storage or set defaults
+// --------------------------------------------------------------------------------
+const position = JSON.parse(localStorage.getItem('position')) || 'posTopLeft';
+const boxSize = JSON.parse(localStorage.getItem('boxSize')) || 300;
+const colorsStandard = JSON.parse(localStorage.getItem('colorsStandard')) || {
+	number: '#000000',
+	background: '#ffffff',
+};
+const colorsWarning = JSON.parse(localStorage.getItem('colorsWarning')) || {
+	number: '#000000',
+	background: '#ffff00',
+};
+const colorsTimeout = JSON.parse(localStorage.getItem('colorsTimeout')) || {
+	number: '#000000',
+	background: '#ff0000',
+};
+const textX = JSON.parse(localStorage.getItem('textX')) || 0;
+const textY = JSON.parse(localStorage.getItem('textY')) || 0;
+const y = JSON.parse(localStorage.getItem('y')) || 0;
+const x = JSON.parse(localStorage.getItem('x')) || 0;
 
-let isInitializing = true;
+const quiztimerOptions = {
+	position,
+	boxSize,
+	colorsStandard,
+	colorsWarning,
+	colorsTimeout,
+	textX,
+	textY,
+	y,
+	x,
+};
+console.log('🚀 ~ quiztimerOptions:', quiztimerOptions);
+
+let videoSize;
 
 document.onreadystatechange = async () => {
 	if (document.readyState === 'complete') {
+		console.log('X');
 		let zIndex;
 		let prevImageId = '0';
-		let videoSize = quiztimerOptions.size;
 
 		const stop = Symbol('stop');
 		const running = Symbol('running');
@@ -37,10 +53,16 @@ document.onreadystatechange = async () => {
 		let posX = 10,
 			posY = 10; // where to draw the text
 
+		// Cache for optimized redraws
+		let lastDrawnTime = null;
+		let lastColorState = null;
+		let cachedImageData = null;
+
 		const btnStartStop = document.getElementById('btn_startStop');
 		const btnContinue = document.getElementById('btn_continue');
 		// --------------------------------------------------------------------
 		const gui = initGui();
+		console.log('🚀 ~ gui:', gui);
 		await initZoomSdk(gui);
 
 		// --------------------------------------------------------------------
@@ -70,6 +92,7 @@ document.onreadystatechange = async () => {
 			const ctx = canvas.getContext('2d', {
 				willReadFrequently: true,
 			});
+
 			const gui = { canvas, ctx };
 			canvas.height = quiztimerOptions.boxSize;
 			canvas.width = quiztimerOptions.boxSize;
@@ -95,7 +118,8 @@ document.onreadystatechange = async () => {
 					});
 				}
 
-				switch (event.target.id) {
+				const targetId = event.target.id || event.target.closest('button')?.id;
+				switch (targetId) {
 					case 'btn_startStop':
 						if (state === stop) startTimer(gui);
 						else if (state === running) stopTimer(gui);
@@ -163,7 +187,7 @@ document.onreadystatechange = async () => {
 				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
 				// initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);
-				localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
+				localStorage.setItem('boxSize', JSON.stringify(quiztimerOptions.boxSize));
 			});
 
 			return gui;
@@ -205,6 +229,7 @@ document.onreadystatechange = async () => {
 		 * @param {Object} gui - The GUI object containing canvas and context information.
 		 */
 		async function setPosition(position, gui) {
+			console.log('🚀 ~ setPosition ~ position:', position);
 			switch (position) {
 				case 'posTopLeft':
 					quiztimerOptions.x = 0;
@@ -224,10 +249,14 @@ document.onreadystatechange = async () => {
 					quiztimerOptions.y = videoSize.height - gui.canvas.height;
 					break;
 			}
+			invalidateCache();
 			initCanvas(gui);
 			drawImage(gui.canvas, gui.ctx, duration);
 			quiztimerOptions.position = position;
-			localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
+			console.log('Saved position', quiztimerOptions.position);
+			localStorage.setItem('position', JSON.stringify(quiztimerOptions.position));
+			localStorage.setItem('x', JSON.stringify(quiztimerOptions.x));
+			localStorage.setItem('y', JSON.stringify(quiztimerOptions.y));
 		}
 		// --------------------------------------------------------------------
 		/**
@@ -237,6 +266,7 @@ document.onreadystatechange = async () => {
 		 * initZoomSdk(gui);
 		 */
 		async function initZoomSdk(gui) {
+			console.log('init Zoom sdk');
 			// Initialize the Zoom SDK with the given capabilities
 			const configResult = await zoomSdk.config({
 				version: '0.16.19',
@@ -253,7 +283,7 @@ document.onreadystatechange = async () => {
 					'onMyMediaChange',
 				],
 				onAuthorized: authResponse => {
-					console.log('Initial authorization complete');
+					console.log('Initial authorization complete', authResponse);
 				},
 			});
 
@@ -273,7 +303,6 @@ document.onreadystatechange = async () => {
 					// Initialize the timer
 					initCanvas(gui);
 					addEventListeners(gui);
-					isInitializing = false;
 				})
 				.catch(async error => {
 					// Log the error
@@ -300,8 +329,6 @@ document.onreadystatechange = async () => {
 			// Set an event listener for the myMediaChange event
 			// and debounce it
 			zoomSdk.addEventListener('onMyMediaChange', event => {
-				console.log('onMyMediaChange', event.media.video.state, isInitializing);
-				if (isInitializing) return;
 				if (event.media.video.state === false) {
 					zoomSdk
 						.closeRenderingContext()
@@ -350,12 +377,10 @@ document.onreadystatechange = async () => {
 
 			// Measure the text
 			const metrics = virtualCtx.measureText(text);
-			const textHeight =
-				metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+			const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
 			// Set canvas width and adjust height to match text height
 			// canvas.width = canvasWidth;
-			virtualCanvas.height =
-				textHeight + ((textHeight * paddingPercent) / 100) * 2;
+			virtualCanvas.height = textHeight + ((textHeight * paddingPercent) / 100) * 2;
 
 			// Clear the virtualCanvas
 			virtualCtx.clearRect(0, 0, virtualCanvas.width, virtualCanvas.height);
@@ -374,9 +399,7 @@ document.onreadystatechange = async () => {
 
 				const newMetrics = virtualCtx.measureText(text);
 				const newTextWidth = newMetrics.width;
-				const newTextHeight =
-					newMetrics.actualBoundingBoxAscent +
-					newMetrics.actualBoundingBoxDescent;
+				const newTextHeight = newMetrics.actualBoundingBoxAscent + newMetrics.actualBoundingBoxDescent;
 				const padding = (newTextHeight * paddingPercent) / 100;
 
 				if (newTextWidth + padding * 2 <= virtualCanvas.width) {
@@ -393,9 +416,7 @@ document.onreadystatechange = async () => {
 			// Measure the text with final font size
 			const finalMetrics = virtualCtx.measureText(text);
 			const finalTextWidth = finalMetrics.width;
-			const finalTextHeight =
-				finalMetrics.actualBoundingBoxAscent +
-				finalMetrics.actualBoundingBoxDescent;
+			const finalTextHeight = finalMetrics.actualBoundingBoxAscent + finalMetrics.actualBoundingBoxDescent;
 			const padding = (finalTextHeight * paddingPercent) / 100;
 
 			// Resize virtualCanvas height to match the text height with the new font size
@@ -410,14 +431,10 @@ document.onreadystatechange = async () => {
 		// ----------------------------------------------------------------------------------------------------
 		function initCanvas(gui) {
 			// Set text properties
-			console.log('initCanvas!');
 			const fontFamily = 'Arial';
-			let [x, y, bestFontSize, canvasWidth, canvasHeight] =
-				calcFontsize(fontFamily);
+			let [x, y, bestFontSize, canvasWidth, canvasHeight] = calcFontsize(fontFamily);
 			posX = x;
 			posY = y;
-			console.log('canvasHeight', canvasHeight);
-			console.log('canvasWidth', canvasWidth);
 			gui.canvas.height = canvasHeight;
 			gui.canvas.width = canvasWidth;
 
@@ -431,8 +448,8 @@ document.onreadystatechange = async () => {
 			gui.ctx.fillStyle = bgColor;
 			gui.ctx.textAlign = 'left';
 			gui.ctx.textBaseline = 'alphabetic';
-			console.log('GUI Canvas x, y', gui.canvas.width, gui.canvas.height);
 
+			invalidateCache();
 			drawImage(gui.canvas, gui.ctx, 20);
 		}
 
@@ -465,8 +482,9 @@ document.onreadystatechange = async () => {
 
 			btnContinue.disabled = true;
 			timeLeft = duration;
-			const progressbar = document.getElementById('countdown');
-			progressbar.value = progressbar.max;
+			const progressFill = btnContinue.querySelector('.progress-fill');
+			progressFill.style.width = '0%';
+			btnContinue.classList.remove('active');
 
 			runTimer(timeLeft, gui);
 		}
@@ -479,7 +497,7 @@ document.onreadystatechange = async () => {
 			// Set the state to stop
 			state = stop;
 
-			// Enable the continue button
+			// Enable the continue button during countdown
 			btnContinue.disabled = false;
 
 			// Clear the interval to stop the timer
@@ -487,6 +505,9 @@ document.onreadystatechange = async () => {
 
 			// Update the button text to "Start"
 			btnStartStop.innerText = 'Start';
+
+			// Apply dark state to continue button
+			btnContinue.classList.add('active');
 
 			// Reset the timer after a delay
 			timedReset(gui);
@@ -509,9 +530,10 @@ document.onreadystatechange = async () => {
 			// Clear the interval to stop the timed reset
 			clearInterval(timedResetId);
 
-			// Reset the progress bar
-			const progressbar = document.getElementById('countdown');
-			progressbar.value = progressbar.max;
+			// Reset the progress bar and remove dark state
+			const progressFill = btnContinue.querySelector('.progress-fill');
+			progressFill.style.width = '0%';
+			btnContinue.classList.remove('active');
 
 			// Start the timer with the remaining time
 			runTimer(timeLeft, gui);
@@ -520,17 +542,21 @@ document.onreadystatechange = async () => {
 		function timedReset(gui) {
 			const timeout = 5000;
 
-			const progressbar = document.getElementById('countdown');
-			progressbar.value = progressbar.max;
-			const chunk = timeout / 10;
+			const progressFill = btnContinue.querySelector('.progress-fill');
+			progressFill.style.width = '100%';
+			let width = 100;
 			timedResetId = setInterval(() => {
-				progressbar.value = progressbar.value - progressbar.max / chunk;
-				if (progressbar.value <= 0) {
+				width -= 2;
+				progressFill.style.width = width + '%';
+				if (width <= 0) {
 					clearInterval(timedResetId);
+					progressFill.style.width = '0%';
+					// Disable the continue button after countdown completes
+					btnContinue.disabled = true;
 					recalcPosX(duration);
 					drawImage(gui.canvas, gui.ctx, duration);
 				}
-			}, 10);
+			}, 50);
 		}
 		// --------------------------------------------------------------------
 		function runTimer(duration, gui) {
@@ -555,39 +581,65 @@ document.onreadystatechange = async () => {
 			}, 1000);
 		}
 
-		// --------------------------------------------------------------------
+		// Helper function to determine current color state
+		function getColorState(time) {
+			if (time === 0) return 'timeout';
+			if (time <= 5) return 'warning';
+			return 'standard';
+		}
+
+		// Helper function to get colors for a given state
+		function getColorsForState(state) {
+			const stateMap = {
+				standard: quiztimerOptions.colorsStandard,
+				warning: quiztimerOptions.colorsWarning,
+				timeout: quiztimerOptions.colorsTimeout,
+			};
+			return stateMap[state];
+		}
+
+		// Helper function to invalidate the render cache when colors or layout change
+		function invalidateCache() {
+			lastDrawnTime = null;
+			lastColorState = null;
+			cachedImageData = null;
+		}
+
+		// Optimized drawImage with caching to reduce SDK calls
 		async function drawImage(canvas, ctx, time) {
-			console.log('draw Image');
-			let fgColor = quiztimerOptions.numberStandard;
-			// -----------------------------------------------------------------------------
-			let bgColor = `${quiztimerOptions.backgroundStandard}`;
-			if (time <= 5) {
-				fgColor = quiztimerOptions.numberWarning;
-				bgColor = `${quiztimerOptions.backgroundWarning}`;
+			// Determine if visual content has changed
+			const currentColorState = getColorState(time);
+			const contentChanged = lastDrawnTime !== time || lastColorState !== currentColorState;
+
+			// Skip canvas redraw if nothing visual changed
+			if (contentChanged) {
+				const colors = getColorsForState(currentColorState);
+				const fgColor = colors.number;
+				const bgColor = `${colors.background}`;
+
+				// Redraw canvas only when needed
+				ctx.fillStyle = bgColor;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.fillStyle = fgColor;
+				ctx.fillText(time, posX, posY);
+
+				// Cache the image data
+				cachedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+				lastDrawnTime = time;
+				lastColorState = currentColorState;
 			}
-			if (time === 0) {
-				fgColor = quiztimerOptions.numberTimeout;
-				bgColor = `${quiztimerOptions.backgroundTimeout}`;
-			}
+
 			//---------------------------------------------------------------
 			zIndex++;
 
-			ctx.fillStyle = bgColor;
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
-			ctx.fillStyle = fgColor;
-			ctx.fillText(time, posX, posY);
-			const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 			const x = quiztimerOptions.x;
 			const y = quiztimerOptions.y;
-			const start = performance.now();
 			let imageId = await zoomSdk.drawImage({
-				imageData,
+				imageData: cachedImageData,
 				zIndex,
 				x,
 				y,
 			});
-			const end = performance.now();
-			console.log(`Execution time: ${end - start} milliseconds`);
 			// remove previous image
 			if (prevImageId !== '0') {
 				zoomSdk.clearImage(prevImageId);
@@ -596,123 +648,102 @@ document.onreadystatechange = async () => {
 		}
 
 		// ========================================================================================================
-		// === Options ============================================================================================
+		// === Color options ============================================================================================
 		// ========================================================================================================
 
-		// ------------------------------------------------------------------------------------
-		// setup custom events for color selectors
-
 		// --- colorSelectorNumberStandard -------------------------------------------------------
-		const colorSelectorNumberStandard = document.getElementById(
-			'colorSelectorNumberStandard'
-		);
-
-		const colorSelectorBackgroundStandard = document.getElementById(
-			'colorSelectorBackgroundStandard'
-		);
-
-		const colorSelectorExampleStandard = document.getElementById(
-			'colorSelectorExampleStandard'
-		);
-
-		// close color picker when color selector is clicked
-		document.addEventListener('colorpickeropen', e => {
-			console.log('colorpickeropen', e);
-		});
+		const colorSelectorNumberStandard = document.getElementById('colorSelectorNumberStandard');
+		const colorSelectorBackgroundStandard = document.getElementById('colorSelectorBackgroundStandard');
+		const colorExampleStandard = document.getElementById('colorExampleStandard');
 
 		//--- set color selectors
-		colorSelectorNumberStandard.value = quiztimerOptions.numberStandard;
-		colorSelectorBackgroundStandard.value = quiztimerOptions.backgroundStandard;
-		colorSelectorExampleStandard.style.color = quiztimerOptions.numberStandard;
-		colorSelectorExampleStandard.style.backgroundColor =
-			quiztimerOptions.backgroundStandard;
+		colorSelectorNumberStandard.value = quiztimerOptions.colorsStandard.number;
+		colorSelectorBackgroundStandard.value = quiztimerOptions.colorsStandard.background;
+		colorExampleStandard.style.color = quiztimerOptions.colorsStandard.number;
+		colorExampleStandard.style.background = quiztimerOptions.colorsStandard.background;
 
-		colorSelectorNumberStandard.addEventListener('change', e => {
-			saveOption('numberStandard', e.target.value, gui);
-		});
-
-		colorSelectorNumberStandard.addEventListener('change', e => {
-			saveOption('numberStandard', e.target.value, gui);
-		});
 		colorSelectorNumberStandard.addEventListener('input', e => {
-			colorSelectorExampleStandard.style.color = e.target.value;
+			colorExampleStandard.style.color = e.target.value;
+			quiztimerOptions.colorsStandard.number = e.target.value;
+			invalidateCache();
 		});
 
-		colorSelectorBackgroundStandard.addEventListener('change', e => {
-			saveOption('backgroundStandard', e.target.value, gui);
-		});
 		colorSelectorBackgroundStandard.addEventListener('input', e => {
-			colorSelectorExampleStandard.style.backgroundColor = e.target.value;
+			colorExampleStandard.style.background = e.target.value;
+			quiztimerOptions.colorsStandard.background = e.target.value;
+			invalidateCache();
 		});
 
+		colorSelectorNumberStandard.addEventListener('change', _e => {
+			saveOption('colorsStandard', quiztimerOptions.colorsStandard, gui);
+		});
+
+		colorSelectorBackgroundStandard.addEventListener('change', _e => {
+			saveOption('colorsStandard', quiztimerOptions.colorsStandard, gui);
+		});
 		// --- colorSelectorNumberWarning -------------------------------------------------------
-		const colorSelectorNumberWarning = document.getElementById(
-			'colorSelectorNumberWarning'
-		);
-		const colorSelectorBackgroundWarning = document.getElementById(
-			'colorSelectorBackgroundWarning'
-		);
+		const colorSelectorNumberWarning = document.getElementById('colorSelectorNumberWarning');
+		const colorSelectorBackgroundWarning = document.getElementById('colorSelectorBackgroundWarning');
+		const colorExampleWarning = document.getElementById('colorExampleWarning');
 
-		const colorSelectorExampleWarning = document.getElementById(
-			'colorSelectorExampleWarning'
-		);
+		colorSelectorNumberWarning.value = quiztimerOptions.colorsWarning.number;
+		colorSelectorBackgroundWarning.value = quiztimerOptions.colorsWarning.background;
+		colorExampleWarning.style.color = quiztimerOptions.colorsWarning.number;
+		colorExampleWarning.style.background = quiztimerOptions.colorsWarning.background;
 
-		// set color selectors
-		colorSelectorNumberWarning.value = quiztimerOptions.numberWarning;
-		colorSelectorBackgroundWarning.value = quiztimerOptions.backgroundWarning;
-		colorSelectorExampleWarning.style.color = quiztimerOptions.numberWarning;
-		colorSelectorExampleWarning.style.backgroundColor =
-			quiztimerOptions.backgroundWarning;
-
-		colorSelectorNumberWarning.addEventListener('change', e => {
-			saveOption('numberWarning', e.target.value, gui);
-		});
 		colorSelectorNumberWarning.addEventListener('input', e => {
-			colorSelectorExampleWarning.style.color = e.target.value;
+			colorExampleWarning.style.color = e.target.value;
+			quiztimerOptions.colorsWarning.number = e.target.value;
+			invalidateCache();
 		});
 
-		colorSelectorBackgroundWarning.addEventListener('change', e => {
-			saveOption('backgroundWarning', e.target.value, gui);
-		});
 		colorSelectorBackgroundWarning.addEventListener('input', e => {
-			colorSelectorExampleWarning.style.backgroundColor = e.target.value;
+			colorExampleWarning.style.background = e.target.value;
+			quiztimerOptions.colorsWarning.background = e.target.value;
+			invalidateCache();
 		});
-		// --- colorSelectorNumberTimeout -------------------------------------------------------
-		const colorSelectorNumberTimeout = document.getElementById(
-			'colorSelectorNumberTimeout'
-		);
-		const colorSelectorBackgroundTimeout = document.getElementById(
-			'colorSelectorBackgroundTimeout'
-		);
 
-		const colorSelectorExampleTimeout = document.getElementById(
-			'colorSelectorExampleTimeout'
-		);
-
-		// set color selectors
-		colorSelectorNumberTimeout.value = quiztimerOptions.numberTimeout;
-		colorSelectorBackgroundTimeout.value = quiztimerOptions.backgroundTimeout;
-		colorSelectorExampleTimeout.style.color = quiztimerOptions.numberTimeout;
-		colorSelectorExampleTimeout.style.backgroundColor =
-			quiztimerOptions.backgroundTimeout;
-
-		colorSelectorNumberTimeout.addEventListener('change', e => {
-			saveOption('numberTimeout', e.target.value, gui);
+		colorSelectorNumberWarning.addEventListener('change', _e => {
+			saveOption('colorsWarning', quiztimerOptions.colorsWarning, gui);
 		});
+
+		colorSelectorBackgroundWarning.addEventListener('change', _e => {
+			saveOption('colorsWarning', quiztimerOptions.colorsWarning, gui);
+		});
+
+		//--- colorSelectorNumberTimeout -------------------------------------------------------
+		const colorSelectorNumberTimeout = document.getElementById('colorSelectorNumberTimeout');
+		const colorSelectorBackgroundTimeout = document.getElementById('colorSelectorBackgroundTimeout');
+		const colorExampleTimeout = document.getElementById('colorExampleTimeout');
+
+		colorSelectorNumberTimeout.value = quiztimerOptions.colorsTimeout.number;
+		colorSelectorBackgroundTimeout.value = quiztimerOptions.colorsTimeout.background;
+		colorExampleTimeout.style.color = quiztimerOptions.colorsTimeout.number;
+		colorExampleTimeout.style.background = quiztimerOptions.colorsTimeout.background;
+
 		colorSelectorNumberTimeout.addEventListener('input', e => {
-			colorSelectorExampleTimeout.style.color = e.target.value;
+			colorExampleTimeout.style.color = e.target.value;
+			quiztimerOptions.colorsTimeout.number = e.target.value;
+			invalidateCache();
 		});
 
-		colorSelectorBackgroundTimeout.addEventListener('change', e => {
-			saveOption('backgroundTimeout', e.target.value, gui);
-		});
 		colorSelectorBackgroundTimeout.addEventListener('input', e => {
-			colorSelectorExampleTimeout.style.backgroundColor = e.target.value;
+			colorExampleTimeout.style.background = e.target.value;
+			quiztimerOptions.colorsTimeout.background = e.target.value;
+			invalidateCache();
 		});
 
-		function saveOption(optionName, optionValue, gui) {
-			quiztimerOptions[optionName] = optionValue;
-			localStorage.setItem('quiztimer', JSON.stringify(quiztimerOptions));
+		colorSelectorNumberTimeout.addEventListener('change', _e => {
+			saveOption('colorsTimeout', quiztimerOptions.colorsTimeout, gui);
+		});
+
+		colorSelectorBackgroundTimeout.addEventListener('change', _e => {
+			saveOption('colorsTimeout', quiztimerOptions.colorsTimeout, gui);
+		});
+
+		// --- save color Options
+		function saveOption(name, value, gui) {
+			localStorage.setItem(name, JSON.stringify(value));
 			drawImage(gui.canvas, gui.ctx, duration);
 		}
 	}

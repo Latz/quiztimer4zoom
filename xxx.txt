@@ -1,0 +1,100 @@
+document.onreadystatechange = async () => {
+	if (document.readyState === 'complete') {
+		console.log('options-script.js');
+
+		// ColorSelectors
+		const colorSelectorNumberStandard = document.getElementById(
+			'colorSelectorNumberStandard'
+		);
+		const colorSelectorBackgroundStandard = document.getElementById(
+			'colorSelectorBackgroundStandard'
+		);
+		const colorSelectorNumberWarning = document.getElementById(
+			'colorSelectorNumberWarning'
+		);
+		const colorSelectorBackgroundWarning = document.getElementById(
+			'colorSelectorBackgroundWarning'
+		);
+		const colorSelectorNumberTimeout = document.getElementById(
+			'colorSelectorNumberTimeout'
+		);
+		const colorSelectorBackgroundTimeout = document.getElementById(
+			'colorSelectorBackgroundTimeout'
+		);
+
+		// examples
+		const exampleNumberStandard = document.getElementById(
+			'exampleNumberStandard'
+		);
+		const exampleNumberWarning = document.getElementById(
+			'exampleNumberWarning'
+		);
+		const exampleNumberTimeout = document.getElementById(
+			'exampleNumberTimeout'
+		);
+
+		// ------------------------------------------------------------------------------------------
+		colorSelectorNumberStandard.addEventListener('change', () => {
+			console.log(
+				'change colorSelectorNumberStandard:',
+				examplecolorSelectorNumberStandard.value
+			);
+		});
+		colorSelectorNumberStandard.addEventListener('input', () => {
+			exampleNumberStandard.style.color = colorSelectorNumberStandard.value;
+		});
+		// ----------------------------------------------------------------------------------------
+		colorSelectorNumberWarning.addEventListener('change', () => {
+			console.log(
+				'change colorSelectorNumberWarning:',
+				colorSelectorNumberWarning.value
+			);
+		});
+		colorSelectorNumberWarning.addEventListener('input', () => {
+			exampleNumberWarning.style.color = colorSelectorNumberWarning.value;
+		});
+		// -----------------------------------------------------------------------------------------
+		colorSelectorNumberTimeout.addEventListener('change', () => {
+			console.log(
+				'change colorSelectorNumberTimeout:',
+				exampleColorSelectorNumberTimeout.value
+			);
+		});
+		colorSelectorNumberTimeout.addEventListener('input', () => {
+			exampleNumberTimeout.style.color = colorSelectorNumberTimeout.value;
+		});
+		// ===========================================================================================
+		colorSelectorBackgroundStandard.addEventListener('change', () => {
+			console.log(
+				'change colorSelectorNumberStandard:',
+				colorSelectorBackgroundStandard.value
+			);
+		});
+		colorSelectorBackgroundStandard.addEventListener('input', () => {
+			exampleNumberStandard.style.backgroundColor =
+				colorSelectorBackgroundStandard.value;
+		});
+		// ----------------------------------------------------------------------------------------
+		colorSelectorBackgroundWarning.addEventListener('change', () => {
+			console.log(
+				'change colorSelectorNumberWarning:',
+				colorSelectorBackgroundWarning.value
+			);
+		});
+		colorSelectorBackgroundWarning.addEventListener('input', () => {
+			exampleNumberWarning.style.backgroundColor =
+				colorSelectorBackgroundWarning.value;
+		});
+		// -----------------------------------------------------------------------------------------
+		colorSelectorBackgroundTimeout.addEventListener('change', () => {
+			console.log(
+				'change colorSelectorNumberTimeout:',
+				ColorSelectorBackgroundTimeout.value
+			);
+		});
+		colorSelectorBackgroundTimeout.addEventListener('input', () => {
+			exampleNumberTimeout.style.backgroundColor =
+				colorSelectorBackgroundTimeout.value;
+		});
+	}
+};

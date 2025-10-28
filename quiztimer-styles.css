@@ -7,6 +7,10 @@ body {
 	/* overflow-y: hidden; */
 }
 
+body:not(.options-open) {
+    overflow-y: hidden;
+}
+
 #container {
 	width: 205px;
 	margin-left: auto;
@@ -25,17 +29,60 @@ body {
 
 #btn_continue {
 	width: 201px;
+	height: 20px;
 	margin-top: 5px;
+	position: relative;
+	border: 2px solid #ccc;
+	background: #f5f5f5;
+	color: #333;
+	font-size: 16px;
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.progress-button {
+	position: relative;
+	border: 2px solid #ccc;
+	background: #f5f5f5;
+	color: #333;
+	cursor: pointer;
+	overflow: hidden;
+	transition: background-color 0.3s, color 0.3s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.button-text {
+	position: relative;
+	z-index: 2;
+}
+
+.progress-fill {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 0%;
+	background: #999;
+	z-index: 1;
+}
+
+.progress-button.active {
+	color: white;
+	background: rgba(153, 153, 153, 0.5);
 }
 
 #btn_20sec {
 	width: 98px;
+	height: 20px;
 	margin-top: 5px;
 	float: left;
 }
 
 #btn_30sec {
 	width: 98px;
+	height: 20px;
 	margin: 5px 0 0 5px;
 	float: left;
 	margin-bottom: 5px;
@@ -44,6 +91,11 @@ body {
 .smallHeading {
 	font-weight: bold;
 	margin: 15px 0 5px;
+}
+
+summary.smallHeading {
+    text-align: left;
+    cursor: pointer;
 }
 
 #corners {
@@ -185,27 +237,28 @@ body {
 /* ------------------------------------------------------------------- */
 
 #subActions {
-	width: 205px;
+	width: 100px;
 	clear: both;
-	padding-top: 10px;
+	padding-top: 5px;
 	display: flex;
 	flex-direction: row;
-	align-items: end;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0px;
 	margin-left: auto;
 	margin-right: 0;
+	margin-top: 0;
 	float: right;
-}
-#countdown {
-	margin-right: 15px;
 }
 
 #btn_options,
 #btn_panic,
 #btn_help {
 	display: flex;
-	justify-content: space-between;
+	justify-content: center;
+	align-items: center;
 	clear: both;
-	font-size: 16px;
+	font-size: 17px;
 	background-color: transparent;
 	background-repeat: no-repeat;
 	border: none;
@@ -214,6 +267,11 @@ body {
 	outline: none;
 	color: transparent;
 	text-shadow: 0 0 0 lightgrey;
+	margin: 0;
+	padding: 0;
+	width: 20px;
+	height: 20px;
+	line-height: 1;
 }
 
 #options {
@@ -235,8 +293,17 @@ body {
 /* Timer size */
 
 #timerSize {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
 	margin-bottom: 5px;
 	user-select: none;
+}
+
+#val_timerSize_container {
+    min-width: 30px;
+    text-align: center;
 }
 
 #timerSizeHeading {

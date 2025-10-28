@@ -27,7 +27,14 @@ zoomApp = {
 };
 
 const app = express();
-app.use(express.static(path.join(__dirname, '.')));
+app.use('/scripts', express.static(path.join(__dirname, 'scripts')));
+app.use(express.static(path.join(__dirname, '.'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
 // app.use(express.static(path.join(__dirname, '/api/scripts')));
 
 app.use(cookieParser());
@@ -73,16 +80,24 @@ authRoutes.get('/auth', session, async (req, res) => {
 	res.redirect(deeplink);
 });
 app.use('/', authRoutes);
-app.use(express.static(path.join(__dirname, 'scripts')));
+app.use('/scripts', express.static(path.join(__dirname, 'scripts')));
 
 // -----------------------------------------------------
 // Now start the server
 export default app;
 
 // for local testing start the server
-if (os.hostname() === 'pascal' && !app) {
+if (os.hostname() === 'pascal') {
 	console.log('starting server');
 	app.listen(port, () => {
 		console.log(`Server running on port ${port}`);
 	});
+} else {
+	// Always start server if not running for production
+	if (process.env.NODE_ENV !== 'production') {
+		console.log('starting server');
+		app.listen(port, () => {
+			console.log(`Server running on port ${port}`);
+		});
+	}
 }
