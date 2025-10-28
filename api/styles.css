@@ -8,7 +8,7 @@ body {
 }
 
 body:not(.options-open) {
-    overflow-y: hidden;
+	overflow-y: hidden;
 }
 
 #container {
@@ -52,11 +52,11 @@ body:not(.options-open) {
 }
 
 #btn_continue.progress-button:disabled {
-	cursor: pointer;
+	cursor: default;
 }
 
 #btn_continue.progress-button:not(:disabled) {
-	cursor: not-allowed;
+	cursor: pointer;
 }
 
 .progress-button {
@@ -115,7 +115,7 @@ body:not(.options-open) {
 	border: 2px solid #ccc;
 	background: #f5f5f5;
 	color: #333;
-	cursor: pointer;
+	cursor: default;
 	border-radius: 4px;
 }
 
@@ -165,8 +165,8 @@ body:not(.options-open) {
 }
 
 summary.smallHeading {
-    text-align: left;
-    cursor: pointer;
+	text-align: left;
+	cursor: pointer;
 }
 
 #corners {
@@ -380,17 +380,17 @@ summary.smallHeading {
 /* Timer size */
 
 #timerSize {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
 	margin-bottom: 5px;
 	user-select: none;
 }
 
 #val_timerSize_container {
-    min-width: 30px;
-    text-align: center;
+	min-width: 30px;
+	text-align: center;
 }
 
 #timerSizeHeading {
@@ -573,7 +573,6 @@ summary.smallHeading {
 .background {
 	grid-area: background;
 }
-
 
 #opacity {
 	width: 100%;
