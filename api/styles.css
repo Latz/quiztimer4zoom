@@ -339,9 +339,11 @@ summary.smallHeading {
 	clear: both;
 	padding-top: 10px;
 	visibility: hidden;
-	width: 201px;
+	width: 95%;
+	max-width: 500px;
 	margin-left: auto;
 	margin-right: auto;
+	box-sizing: border-box;
 }
 
 /* Tabs styling - shadcn inspired */
@@ -352,10 +354,8 @@ summary.smallHeading {
 	background-color: #f3f4f6;
 	padding: 4px;
 	border-radius: 8px;
-	width: 201px;
+	width: 100%;
 	box-sizing: border-box;
-	margin-left: auto;
-	margin-right: auto;
 }
 
 .tab-button {
@@ -402,9 +402,7 @@ summary.smallHeading {
 }
 
 #panel-colors {
-	width: 201px;
-	margin-left: auto;
-	margin-right: auto;
+	width: 100%;
 	box-sizing: border-box;
 	padding: 0;
 }
@@ -526,30 +524,30 @@ summary.smallHeading {
 /* Color containers */
 
 .colorcontainer {
-	margin-bottom: 12px;
+	margin-bottom: 14px;
 }
 
 .colorcontainer section {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
 }
 
 .colorcontainer > section > div {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	padding: 8px;
+	justify-content: flex-start;
+	padding: 12px;
 	background: #f9fafb;
 	border-radius: 6px;
-	gap: 8px;
+	gap: 10px;
 }
 
 .colorcontainer input[type='color'] {
-	width: 36px;
-	height: 36px;
+	width: 44px;
+	height: 44px;
 	border: 2px solid #d1d5db;
-	border-radius: 4px;
+	border-radius: 6px;
 	padding: 0;
 	cursor: pointer;
 	transition: all 0.2s ease-in-out;
@@ -586,13 +584,14 @@ summary.smallHeading {
 }
 
 .colorHeading {
-	font-size: 12px;
-	font-weight: 600;
+	font-size: 14px;
+	font-weight: 700;
 	color: #1f2937;
 	text-align: left;
-	margin-bottom: 8px;
-	margin-top: 10px;
+	margin-bottom: 10px;
+	margin-top: 12px;
 	padding-left: 0;
+	letter-spacing: 0.3px;
 }
 
 .selector1 {
@@ -604,13 +603,13 @@ summary.smallHeading {
 }
 
 .example {
-	width: 40px;
-	height: 40px;
-	font-size: 16px;
+	width: 44px;
+	height: 44px;
+	font-size: 18px;
 	font-family: Arial, Helvetica, sans-serif;
 	font-weight: bold;
 	border: 2px solid #d1d5db;
-	border-radius: 4px;
+	border-radius: 6px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -619,6 +618,7 @@ summary.smallHeading {
 	overflow: hidden;
 	padding: 0;
 	flex-shrink: 0;
+	margin-left: auto;
 }
 
 .number,
