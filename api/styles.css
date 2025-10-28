@@ -526,38 +526,46 @@ summary.smallHeading {
 /* Color containers */
 
 .colorcontainer {
-	display: grid;
-	grid-template-columns: 40px 1fr 50px;
+	margin-bottom: 12px;
+}
+
+.colorcontainer section {
+	display: flex;
+	flex-direction: column;
 	gap: 8px;
-	margin-bottom: 10px;
+}
+
+.colorcontainer > section > div {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 	padding: 8px;
 	background: #f9fafb;
 	border-radius: 6px;
-	align-items: center;
+	gap: 8px;
 }
 
 .colorcontainer input[type='color'] {
-	width: 40px;
-	height: 40px;
+	width: 36px;
+	height: 36px;
 	border: 2px solid #d1d5db;
 	border-radius: 4px;
 	padding: 0;
 	cursor: pointer;
 	transition: all 0.2s ease-in-out;
+	flex-shrink: 0;
 	-webkit-appearance: none;
 	-moz-appearance: none;
 	appearance: none;
 }
 
 .colorcontainer input[type='color']:hover {
-	border-color: #007bff;
-	transform: translateY(-1px);
-	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+	border-color: #3b82f6;
+	box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
 }
 
 .colorcontainer input[type='color']:active {
-	transform: translateY(0);
-	box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+	transform: scale(0.98);
 }
 
 .colorcontainer input[type='color']::-webkit-color-swatch-wrapper {
@@ -596,9 +604,9 @@ summary.smallHeading {
 }
 
 .example {
-	width: 50px;
-	height: 50px;
-	font-size: 18px;
+	width: 40px;
+	height: 40px;
+	font-size: 16px;
 	font-family: Arial, Helvetica, sans-serif;
 	font-weight: bold;
 	border: 2px solid #d1d5db;
@@ -610,21 +618,14 @@ summary.smallHeading {
 	position: relative;
 	overflow: hidden;
 	padding: 0;
+	flex-shrink: 0;
 }
 
 .number,
 .background {
-	font-size: 12px;
+	font-size: 11px;
 	color: #6b7280;
-	display: none;
-}
-
-.number {
-	display: block;
-}
-
-.background {
-	display: block;
+	min-width: 50px;
 }
 
 #opacity {
