@@ -359,13 +359,13 @@ summary.smallHeading {
 }
 
 .tab-button {
-	padding: 8px 16px;
+	padding: 8px 8px;
 	margin: 0;
 	background: transparent;
 	border: none;
 	border-radius: 6px;
 	color: #6b7280;
-	font-size: 14px;
+	font-size: 13px;
 	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s ease;
@@ -373,6 +373,9 @@ summary.smallHeading {
 	position: relative;
 	flex: 1;
 	text-align: center;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .tab-button:hover {
