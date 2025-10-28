@@ -63,12 +63,6 @@ document.onreadystatechange = async () => {
 
 		// Disable continue button initially - only enable when countdown is stopped
 		btnContinue.disabled = true;
-		btnContinue.style.cursor = 'not-allowed';
-
-		// Helper function to update continue button cursor
-		const updateContinueButtonCursor = () => {
-			btnContinue.style.cursor = btnContinue.disabled ? 'not-allowed' : 'pointer';
-		};
 
 		// --------------------------------------------------------------------
 		const gui = initGui();
@@ -490,7 +484,6 @@ document.onreadystatechange = async () => {
 			btnStartStop.innerText = 'Stop';
 
 			btnContinue.disabled = true;
-			updateContinueButtonCursor();
 			timeLeft = duration;
 			const progressFill = btnContinue.querySelector('.progress-fill');
 			progressFill.style.width = '0%';
@@ -509,7 +502,6 @@ document.onreadystatechange = async () => {
 
 			// Enable the continue button during countdown
 			btnContinue.disabled = false;
-			updateContinueButtonCursor();
 
 			// Clear the interval to stop the timer
 			clearInterval(timerId);
@@ -537,7 +529,6 @@ document.onreadystatechange = async () => {
 
 			// Disable the continue button
 			btnContinue.disabled = true;
-			updateContinueButtonCursor();
 
 			// Clear the interval to stop the timed reset
 			clearInterval(timedResetId);
@@ -565,7 +556,6 @@ document.onreadystatechange = async () => {
 					progressFill.style.width = '0%';
 					// Disable the continue button after countdown completes
 					btnContinue.disabled = true;
-					updateContinueButtonCursor();
 					recalcPosX(duration);
 					drawImage(gui.canvas, gui.ctx, duration);
 				}
