@@ -152,7 +152,10 @@ app.get('/', async (req, res, next) => {
 		const header = req.header('x-zoom-app-context');
 		const isZoom = header && getAppContext(header);
 		if (isZoom) {
-			// Read HTML template and inject dynamic hashes
+			// Generate nonce for CSP
+			const nonce = crypto.randomBytes(16).toString('base64');
+
+			// Read HTML template and inject dynamic hashes and nonce
 			const htmlPath = path.join(__dirname, '/quiztimer.html');
 			let html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -166,6 +169,11 @@ app.get('/', async (req, res, next) => {
 			html = html.replace(/quiztimer-script\.js\?v=[a-f0-9]+/g, `quiztimer-script.js?v=${quiztimerScriptHash}`);
 			html = html.replace(/sdk\.js\?v=[a-f0-9]+/g, `sdk.js?v=${sdkHash}`);
 
+			// Inject nonce into inline script tags
+			html = html.replace(/<script>/g, `<script nonce="${nonce}">`);
+
+			// Set CSP header with nonce
+			res.setHeader('Content-Security-Policy', `script-src 'self' 'nonce-${nonce}'`);
 			res.setHeader('Content-Type', 'text/html; charset=utf-8');
 			res.send(html);
 		} else {
