@@ -10,9 +10,22 @@ import path from 'path';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Helper function to compute file hash for cache busting
+function getFileHash(filePath) {
+	try {
+		const content = fs.readFileSync(filePath);
+		return crypto.createHash('md5').update(content).digest('hex').substring(0, 8);
+	} catch (error) {
+		console.error(`Error computing hash for ${filePath}:`, error);
+		return Date.now().toString(); // Fallback to timestamp
+	}
+}
 
 // Load environment variables
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
@@ -139,7 +152,22 @@ app.get('/', async (req, res, next) => {
 		const header = req.header('x-zoom-app-context');
 		const isZoom = header && getAppContext(header);
 		if (isZoom) {
-			res.sendFile(path.join(__dirname, '/quiztimer.html'));
+			// Read HTML template and inject dynamic hashes
+			const htmlPath = path.join(__dirname, '/quiztimer.html');
+			let html = fs.readFileSync(htmlPath, 'utf8');
+
+			// Compute hashes for cache busting
+			const stylesCssHash = getFileHash(path.join(__dirname, 'styles.css'));
+			const quiztimerScriptHash = getFileHash(path.join(__dirname, '../public/quiztimer-script.js'));
+			const sdkHash = getFileHash(path.join(__dirname, '../scripts/sdk.js'));
+
+			// Replace static hashes with dynamic ones
+			html = html.replace(/styles\.css\?v=[a-f0-9]+/g, `styles.css?v=${stylesCssHash}`);
+			html = html.replace(/quiztimer-script\.js\?v=[a-f0-9]+/g, `quiztimer-script.js?v=${quiztimerScriptHash}`);
+			html = html.replace(/sdk\.js\?v=[a-f0-9]+/g, `sdk.js?v=${sdkHash}`);
+
+			res.setHeader('Content-Type', 'text/html; charset=utf-8');
+			res.send(html);
 		} else {
 			res.status(200).send('Please <a href="/install">click here</a> to install.');
 		}
