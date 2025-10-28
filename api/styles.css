@@ -518,16 +518,13 @@ summary.smallHeading {
 /* Color containers */
 
 .colorcontainer {
-	display: grid;
-	place-items: center;
-	grid-template-columns: repeat (3, auto);
-	grid-template-rows: repeat (2 Auto);
-	gap: 5px 3px;
-	grid-auto-flow: row;
-	grid-template-areas:
-		'selector1 number example'
-		'selector2 background example';
-	margin-bottom: 10px;
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+	padding: 10px;
+	background: #f9fafb;
+	border-radius: 6px;
+	align-items: center;
 }
 
 .colorcontainer input[type='color'] {
@@ -579,27 +576,31 @@ summary.smallHeading {
 }
 
 .colorHeading {
-	font-size: 11px;
-	font-weight: bold;
-	color: #868e96;
-	text-transform: uppercase;
-	letter-spacing: 0.08em;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1f2937;
 	text-align: left;
-	padding-left: 2px;
-	margin-bottom: 8px;
-	margin-top: 15px;
+	margin-bottom: 10px;
+	margin-top: 0;
+	padding-left: 0;
 }
 
 .selector1 {
-	grid-area: selector1;
+	display: none;
 }
+
+.selector2 {
+	display: none;
+}
+
 .example {
-	grid-area: example;
-	font-size: 40px;
+	width: 50px;
+	height: 50px;
+	font-size: 24px;
 	font-family: Arial, Helvetica, sans-serif;
 	font-weight: bold;
 	border: 2px solid #e0e0e0;
-	border-radius: 8px;
+	border-radius: 6px;
 	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
 	color: #495057;
 	display: flex;
@@ -609,28 +610,23 @@ summary.smallHeading {
 	user-select: none;
 	position: relative;
 	overflow: hidden;
-	padding: 8px;
-	min-width: 60px;
-	min-height: 60px;
+	padding: 0;
+	flex-shrink: 0;
 }
-.selector2 {
-	grid-area: selector2;
-}
+
 .number,
 .background {
-	justify-self: start;
 	font-size: 12px;
-	color: #6c757d;
-	align-self: center;
-	padding-left: 5px;
+	color: #6b7280;
+	display: none;
 }
 
 .number {
-	grid-area: number;
+	display: block;
 }
 
 .background {
-	grid-area: background;
+	display: block;
 }
 
 #opacity {
