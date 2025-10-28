@@ -17,6 +17,29 @@
 
 		<!-- Scripts -->
 		<script src="/sdk.js"></script>
+
+		<!-- Suppress Zoom SDK console errors -->
+		<script>
+			// Suppress unhandled promise rejections from Zoom SDK
+			window.addEventListener('unhandledrejection', event => {
+				if (event.reason && event.reason.message &&
+					event.reason.message.includes('Zoom client encountered an error')) {
+					event.preventDefault(); // Suppress the error
+				}
+			});
+
+			// Also suppress console errors from SDK
+			const originalError = console.error;
+			console.error = function(...args) {
+				// Check if error is from Zoom SDK
+				if (args[0] && typeof args[0] === 'object' && args[0].message &&
+					args[0].message.includes('Zoom client encountered an error')) {
+					return; // Suppress Zoom SDK errors
+				}
+				originalError.apply(console, args); // Pass other errors through
+			};
+		</script>
+
 		<script src="/quiztimer-script.js" type="module"></script>
 	</head>
 	<body>
