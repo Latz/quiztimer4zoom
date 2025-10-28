@@ -25,6 +25,18 @@ body:not(.options-open) {
 	height: 100px;
 	position: relative;
 	overflow: hidden;
+	transition: all 0.3s ease-in-out;
+}
+
+#btn_startStop:hover {
+	filter: brightness(1.1);
+	transform: translateY(-2px);
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#btn_startStop:active {
+	transform: translateY(0);
+	filter: brightness(0.95);
 }
 
 #btn_continue {
@@ -47,10 +59,24 @@ body:not(.options-open) {
 	color: #333;
 	cursor: pointer;
 	overflow: hidden;
-	transition: background-color 0.3s, color 0.3s;
+	transition: all 0.3s ease-in-out;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	border-radius: 4px;
+}
+
+.progress-button:hover {
+	background: #e0e0e0;
+	border-color: #007bff;
+	color: #007bff;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.progress-button:active {
+	transform: translateY(0);
+	background: #d0d0d0;
 }
 
 .button-text {
@@ -78,6 +104,25 @@ body:not(.options-open) {
 	height: 20px;
 	margin-top: 5px;
 	float: left;
+	transition: all 0.3s ease-in-out;
+	border: 2px solid #ccc;
+	background: #f5f5f5;
+	color: #333;
+	cursor: pointer;
+	border-radius: 4px;
+}
+
+#btn_20sec:hover {
+	background: #e0e0e0;
+	border-color: #007bff;
+	color: #007bff;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+#btn_20sec:active {
+	transform: translateY(0);
+	background: #d0d0d0;
 }
 
 #btn_30sec {
@@ -86,6 +131,25 @@ body:not(.options-open) {
 	margin: 5px 0 0 5px;
 	float: left;
 	margin-bottom: 5px;
+	transition: all 0.3s ease-in-out;
+	border: 2px solid #ccc;
+	background: #f5f5f5;
+	color: #333;
+	cursor: pointer;
+	border-radius: 4px;
+}
+
+#btn_30sec:hover {
+	background: #e0e0e0;
+	border-color: #007bff;
+	color: #007bff;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+#btn_30sec:active {
+	transform: translateY(0);
+	background: #d0d0d0;
 }
 
 .smallHeading {
@@ -272,6 +336,8 @@ summary.smallHeading {
 	width: 20px;
 	height: 20px;
 	line-height: 1;
+	transition: all 0.3s ease-in-out;
+	transform-origin: center;
 }
 
 #options {
@@ -282,12 +348,26 @@ summary.smallHeading {
 
 #btn_panic:hover {
 	color: inherit;
+	transform: scale(1.2) rotate(5deg);
+	filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.4));
 }
+
 #btn_options:hover {
 	color: inherit;
+	transform: scale(1.2) rotate(-5deg);
+	filter: drop-shadow(0 0 4px rgba(100, 100, 255, 0.4));
 }
+
 #btn_help:hover {
 	color: inherit;
+	transform: scale(1.2);
+	filter: drop-shadow(0 0 4px rgba(0, 150, 0, 0.4));
+}
+
+#btn_panic:active,
+#btn_options:active,
+#btn_help:active {
+	transform: scale(0.95);
 }
 /* ---------------------------------------------------------------------- */
 /* Timer size */
