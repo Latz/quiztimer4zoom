@@ -341,6 +341,50 @@ summary.smallHeading {
 	visibility: hidden;
 }
 
+/* Tabs styling */
+#tabsNav {
+	display: flex;
+	gap: 5px;
+	margin-bottom: 10px;
+	border-bottom: 2px solid #ddd;
+}
+
+.tab-button {
+	padding: 8px 12px;
+	background: #f5f5f5;
+	border: none;
+	border-bottom: 3px solid transparent;
+	color: #333;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease-in-out;
+}
+
+.tab-button:hover {
+	background: #e8e8e8;
+	color: #007bff;
+}
+
+.tab-button[aria-selected="true"] {
+	background: white;
+	border-bottom-color: #007bff;
+	color: #007bff;
+	font-weight: 600;
+}
+
+.tab-button[aria-selected="true"]:hover {
+	background: white;
+}
+
+.tab-panel {
+	padding: 10px 0;
+}
+
+.tab-panel[hidden] {
+	display: none;
+}
+
 #btn_panic:hover {
 	color: inherit;
 	transform: scale(1.2) rotate(5deg);

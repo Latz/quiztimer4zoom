@@ -163,8 +163,26 @@ document.onreadystatechange = async () => {
 				}
 			});
 
+			// Tab switching functionality
+			const tabButtons = document.querySelectorAll('.tab-button');
+			const tabPanels = document.querySelectorAll('.tab-panel');
+
+			tabButtons.forEach(button => {
+				button.addEventListener('click', () => {
+					// Remove active state from all buttons
+					tabButtons.forEach(btn => btn.setAttribute('aria-selected', 'false'));
+					// Hide all panels
+					tabPanels.forEach(panel => panel.setAttribute('hidden', ''));
+					// Activate clicked button
+					button.setAttribute('aria-selected', 'true');
+					// Show corresponding panel
+					const panelId = button.getAttribute('aria-controls');
+					document.getElementById(panelId).removeAttribute('hidden');
+				});
+			});
+
 			// add click listeners to corner positions
-			document.getElementById('position').addEventListener('click', event => {
+			document.getElementById('positionCorners').addEventListener('click', event => {
 				setPosition(event.target.id, gui);
 			});
 

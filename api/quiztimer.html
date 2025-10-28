@@ -22,18 +22,21 @@
 		<script>
 			// Suppress unhandled promise rejections from Zoom SDK
 			window.addEventListener('unhandledrejection', event => {
-				if (event.reason && event.reason.message &&
-					event.reason.message.includes('Zoom client encountered an error')) {
+				if (event.reason && event.reason.message && event.reason.message.includes('Zoom client encountered an error')) {
 					event.preventDefault(); // Suppress the error
 				}
 			});
 
 			// Also suppress console errors from SDK
 			const originalError = console.error;
-			console.error = function(...args) {
+			console.error = function (...args) {
 				// Check if error is from Zoom SDK
-				if (args[0] && typeof args[0] === 'object' && args[0].message &&
-					args[0].message.includes('Zoom client encountered an error')) {
+				if (
+					args[0] &&
+					typeof args[0] === 'object' &&
+					args[0].message &&
+					args[0].message.includes('Zoom client encountered an error')
+				) {
 					return; // Suppress Zoom SDK errors
 				}
 				originalError.apply(console, args); // Pass other errors through
@@ -72,8 +75,15 @@
 
 			<!-- Options panel -->
 			<aside id="options" aria-label="Einstellungen">
-				<details id="position">
-					<summary class="smallHeading">Position</summary>
+				<!-- Tabs navigation -->
+				<div id="tabsNav" role="tablist">
+					<button id="tab-position" class="tab-button" role="tab" aria-selected="true" aria-controls="panel-position">Position</button>
+					<button id="tab-size" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-size">Größe</button>
+					<button id="tab-colors" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-colors">Farben</button>
+				</div>
+
+				<!-- Tab panels -->
+				<div id="panel-position" class="tab-panel" role="tabpanel" aria-labelledby="tab-position">
 					<div id="corners">
 						<div id="positionCorners">
 							<button id="posTopLeft" aria-label="Position oben links">🡤</button>
@@ -82,10 +92,9 @@
 							<button id="posBottomRight" aria-label="Position unten rechts">🡦</button>
 						</div>
 					</div>
-				</details>
+				</div>
 
-				<details>
-					<summary class="smallHeading">Timer Größe</summary>
+				<div id="panel-size" class="tab-panel" role="tabpanel" aria-labelledby="tab-size" hidden>
 					<div id="timerSize">
 						<button class="btn_timerSize" id="btn_timerSizeMinusFast" title="Viel kleiner">&lt;&lt;</button>
 						<button class="btn_timerSize" id="btn_timerSizeMinus" title="Kleiner">&lt;</button>
@@ -93,11 +102,9 @@
 						<button class="btn_timerSize" id="btn_timerSizePlus" title="Größer">&gt;</button>
 						<button class="btn_timerSize" id="btn_timerSizePlusFast" title="Viel größer">&gt;&gt;</button>
 					</div>
-				</details>
+				</div>
 
-				<details>
-					<summary class="smallHeading">Farben</summary>
-
+				<div id="panel-colors" class="tab-panel" role="tabpanel" aria-labelledby="tab-colors" hidden>
 					<div class="colorHeading">Standard</div>
 					<div class="colorcontainer">
 						<section class="colorcontainer">
@@ -148,7 +155,7 @@
 							<div class="example" id="colorExampleTimeout" aria-label="Farbvoransicht Timeout">20</div>
 						</section>
 					</div>
-				</details>
+				</div>
 
 				<hr />
 			</aside>
