@@ -52,11 +52,11 @@ body:not(.options-open) {
 }
 
 #btn_continue.progress-button:disabled {
-	cursor: not-allowed;
+	cursor: pointer;
 }
 
 #btn_continue.progress-button:not(:disabled) {
-	cursor: pointer;
+	cursor: not-allowed;
 }
 
 .progress-button {
