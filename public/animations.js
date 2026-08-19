@@ -202,18 +202,15 @@ const Animations = {
 		const bgColor = timeoutColors.background;
 		const fgColor = timeoutColors.number;
 
-		// Create inverted colors for blink effect
-		const invertedBgColor = '#000000'; // Black for dramatic effect
-
 		// 7 frames (odd) so the animation starts AND ends on the selected
-		// background instead of finishing on the inverted black flash.
-		const frames = 7; // 3 complete black flashes, settling back on the real color
+		// colors instead of finishing on the swapped state.
+		const frames = 7; // 3 complete color swaps, settling back on the real colors
 		const frameDelay = 200; // 200ms per frame = slower, more dramatic blink
 
 		for (let i = 0; i < frames; i++) {
 			const isEven = i % 2 === 0;
-			const currentBgColor = isEven ? bgColor : invertedBgColor;
-			const currentFgColor = fgColor;
+			const currentBgColor = isEven ? bgColor : fgColor;
+			const currentFgColor = isEven ? fgColor : bgColor;
 
 			const newImageId = await this.drawFrame(canvas, ctx, time, currentBgColor, currentFgColor, options);
 
