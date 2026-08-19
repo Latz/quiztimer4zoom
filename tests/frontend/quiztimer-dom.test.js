@@ -1,16 +1,19 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Animations are used inside the script — mock them to avoid SDK calls
-vi.mock('../../public/animations.js', () => ({
-	Animations: {
-		pulseTransition: vi.fn(() => Promise.resolve()),
-		shakeTransition: vi.fn(() => Promise.resolve()),
-		blinkAtTimeout: vi.fn(() => Promise.resolve()),
-		drawFrame: vi.fn(() => Promise.resolve('img-id')),
-		hexToRgba: vi.fn((hex, alpha) => `rgba(0,0,0,${alpha})`),
-	},
-}));
+// Animations are used inside the script — mock them to avoid SDK calls.
+// quiztimer-script.js references the bare `Animations` global (set by
+// animations.js as a classic <script> in the real page), not an import, so
+// the mock must also be installed on globalThis for the module to see it.
+const animationsMock = {
+	pulseTransition: vi.fn(() => Promise.resolve()),
+	shakeTransition: vi.fn(() => Promise.resolve()),
+	blinkAtTimeout: vi.fn(() => Promise.resolve()),
+	drawFrame: vi.fn(() => Promise.resolve('img-id')),
+	hexToRgba: vi.fn((hex, alpha) => `rgba(0,0,0,${alpha})`),
+};
+vi.mock('../../public/animations.js', () => ({ Animations: animationsMock }));
+globalThis.Animations = animationsMock;
 
 function buildDom() {
 	document.body.innerHTML = `

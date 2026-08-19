@@ -183,15 +183,6 @@ legend.sr-only {
 	margin-bottom: 5px;
 }
 
-.smallHeading {
-	font-weight: bold;
-	margin: 15px 0 5px;
-}
-
-summary.smallHeading {
-	text-align: left;
-}
-
 #corners {
 	display: flex;
 	align-items: center;
@@ -258,16 +249,6 @@ summary.smallHeading {
 
 #size {
 	width: 90%;
-}
-
-.settingsicon {
-	visibility: hidden;
-	position: absolute;
-	top: 5px;
-	right: 5px;
-	height: 32px;
-	width: 32px;
-	background: url('images/settings-32x32.png') no-repeat;
 }
 
 /* ------------------------------------------------------------------- */
@@ -458,15 +439,6 @@ body.dark-mode .animationLabel input[type='checkbox']:checked {
 	background-color: #4a9eff;
 }
 
-.animationDescription {
-	margin: 0;
-	padding-left: 26px;
-	font-size: 12px;
-	color: var(--text-color);
-	opacity: 0.7;
-	line-height: 1.5;
-}
-
 /* Info icon styles */
 .info-icon {
 	position: relative;
@@ -615,10 +587,6 @@ body.dark-mode .info-icon::after {
 	flex-shrink: 0;
 }
 
-.headingSmall {
-	margin-bottom: 2px;
-}
-
 /* Color containers */
 
 .colorcontainer {
@@ -715,14 +683,6 @@ body.dark-mode .info-icon::after {
 	padding-left: 0;
 	letter-spacing: 0.3px;
 	border-top: 1px solid #e5e7eb;
-}
-
-.selector1 {
-	display: none;
-}
-
-.selector2 {
-	display: none;
 }
 
 .example {
@@ -955,31 +915,6 @@ body.dark-mode dialog.modal::backdrop {
 	color: #555;
 }
 
-.about-features {
-	margin: 16px 0;
-	padding: 12px;
-	background-color: #f9fafb;
-	border-radius: 6px;
-}
-
-.about-features h3 {
-	margin: 0 0 8px 0;
-	font-size: 14px;
-	color: var(--button-text);
-}
-
-.about-features ul {
-	margin: 0;
-	padding-left: 20px;
-	font-size: 13px;
-	color: #555;
-	line-height: 1.6;
-}
-
-.about-features li {
-	margin: 4px 0;
-}
-
 .about-footer {
 	text-align: center;
 	margin: 16px 0 0 0;
@@ -990,7 +925,6 @@ body.dark-mode dialog.modal::backdrop {
 }
 
 /* Dark mode specific styles */
-body.dark-mode .about-features,
 body.dark-mode .colorcontainer > section > div {
 	background-color: var(--input-bg);
 }
@@ -1005,8 +939,7 @@ body.dark-mode #options {
 
 body.dark-mode .colorHeading,
 body.dark-mode .about-version,
-body.dark-mode .about-description,
-body.dark-mode .about-features ul {
+body.dark-mode .about-description {
 	color: #999;
 }
 

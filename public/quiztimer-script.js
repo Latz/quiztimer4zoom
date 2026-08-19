@@ -170,6 +170,9 @@ document.onreadystatechange = async () => {
 		/** @type {number} X offset (from posX) at which the second digit of "18" naturally starts */
 		let secondDigitOffset18 = 0;
 
+		/** @type {number|null} boxSize the canvas/font were last sized for, to skip redundant recalculation when only position changes */
+		let lastCanvasBoxSize = null;
+
 		/** @type {number|null} Last time value that was drawn */
 		let lastDrawnTime = null;
 
@@ -398,38 +401,6 @@ document.onreadystatechange = async () => {
 				setPosition(quiztimerOptions.position, gui);
 				localStorage.setItem('boxSize', JSON.stringify(quiztimerOptions.boxSize));
 			});
-
-			// Add listeners for transparency sliders
-			const backgroundTransparencySlider = document.getElementById('backgroundTransparencySlider');
-			const numberTransparencySlider = document.getElementById('numberTransparencySlider');
-
-			if (backgroundTransparencySlider) {
-				backgroundTransparencySlider.addEventListener('input', event => {
-					quiztimerOptions.backgroundTransparency = Number.parseInt(event.target.value);
-					localStorage.setItem('backgroundTransparency', JSON.stringify(quiztimerOptions.backgroundTransparency));
-					invalidateCache();
-					if (!isDrawing) {
-						isDrawing = true;
-						drawImage(gui.canvas, gui.ctx, duration).then(() => {
-							isDrawing = false;
-						});
-					}
-				});
-			}
-
-			if (numberTransparencySlider) {
-				numberTransparencySlider.addEventListener('input', event => {
-					quiztimerOptions.numberTransparency = Number.parseInt(event.target.value);
-					localStorage.setItem('numberTransparency', JSON.stringify(quiztimerOptions.numberTransparency));
-					invalidateCache();
-					if (!isDrawing) {
-						isDrawing = true;
-						drawImage(gui.canvas, gui.ctx, duration).then(() => {
-							isDrawing = false;
-						});
-					}
-				});
-			}
 
 			// Add listener for pulse animation toggle
 			const pulseAnimationToggle = document.getElementById('pulseAnimationToggle');
@@ -686,29 +657,36 @@ document.onreadystatechange = async () => {
 		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
 		 */
 		function initCanvas(gui) {
-			// Calculate optimal font size and positioning
-			const fontFamily = 'Arial';
-			const [x, y, bestFontSize, canvasWidth, canvasHeight] = calcFontSize(fontFamily);
+			// Font size/canvas dimensions only depend on boxSize. Skip the binary
+			// search and canvas resize when boxSize hasn't changed since last time
+			// (e.g. a position-only change) — recompute only when it has.
+			if (quiztimerOptions.boxSize !== lastCanvasBoxSize) {
+				// Calculate optimal font size and positioning
+				const fontFamily = 'Arial';
+				const [x, y, bestFontSize, canvasWidth, canvasHeight] = calcFontSize(fontFamily);
 
-			// Update global position variables
-			posX = x;
-			posY = y;
+				// Update global position variables
+				posX = x;
+				posY = y;
 
-			// Set canvas dimensions
-			gui.canvas.height = canvasHeight;
-			gui.canvas.width = canvasWidth;
+				// Set canvas dimensions
+				gui.canvas.height = canvasHeight;
+				gui.canvas.width = canvasWidth;
 
-			// Reset font after canvas resize (canvas resize clears font settings)
-			gui.ctx.font = `bold ${bestFontSize}px ${fontFamily}`;
+				// Reset font after canvas resize (canvas resize clears font settings)
+				gui.ctx.font = `bold ${bestFontSize}px ${fontFamily}`;
 
-			// Offset for tightening two-digit numbers 10-19: digits in Arial are
-			// tabular (fixed advance width), so drawing the second digit at its
-			// natural start position produces the same spacing as default
-			// fillText — no visual tightening. Pull it in by ~15% of its own
-			// advance width instead so 19-10 read visibly closer than default.
-			const width1 = gui.ctx.measureText('1').width;
-			const width8 = gui.ctx.measureText('8').width;
-			secondDigitOffset18 = width1 - width8 * 0.15;
+				// Offset for tightening two-digit numbers 10-19: digits in Arial are
+				// tabular (fixed advance width), so drawing the second digit at its
+				// natural start position produces the same spacing as default
+				// fillText — no visual tightening. Pull it in by ~15% of its own
+				// advance width instead so 19-10 read visibly closer than default.
+				const width1 = gui.ctx.measureText('1').width;
+				const width8 = gui.ctx.measureText('8').width;
+				secondDigitOffset18 = width1 - width8 * 0.15;
+
+				lastCanvasBoxSize = quiztimerOptions.boxSize;
+			}
 
 			// Invalidate cache and draw initial time
 			invalidateCache();
@@ -1041,12 +1019,9 @@ document.onreadystatechange = async () => {
 		 * @returns {{number: string, background: string}} Color configuration object
 		 */
 		function getColorsForState(state) {
-			const stateMap = {
-				standard: quiztimerOptions.colorsStandard,
-				warning: quiztimerOptions.colorsWarning,
-				timeout: quiztimerOptions.colorsTimeout,
-			};
-			return stateMap[state];
+			if (state === 'timeout') return quiztimerOptions.colorsTimeout;
+			if (state === 'warning') return quiztimerOptions.colorsWarning;
+			return quiztimerOptions.colorsStandard;
 		}
 
 		/**
@@ -1057,20 +1032,6 @@ document.onreadystatechange = async () => {
 			lastDrawnTime = null;
 			lastColorState = null;
 			cachedImageData = null;
-		}
-
-		/**
-		 * Converts a hex color to rgba format with specified alpha transparency.
-		 *
-		 * @param {string} hex - Hex color code (e.g., '#FF0000')
-		 * @param {number} alpha - Alpha value from 0 (transparent) to 1 (opaque)
-		 * @returns {string} RGBA color string (e.g., 'rgba(255, 0, 0, 0.5)')
-		 */
-		function hexToRgba(hex, alpha) {
-			const r = Number.parseInt(hex.slice(1, 3), 16);
-			const g = Number.parseInt(hex.slice(3, 5), 16);
-			const b = Number.parseInt(hex.slice(5, 7), 16);
-			return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 		}
 
 		/**
@@ -1145,8 +1106,8 @@ document.onreadystatechange = async () => {
 			// 0% = fully transparent, 100% = fully opaque
 			const bgAlpha = transparencyToAlpha(quiztimerOptions.backgroundTransparency);
 			const fgAlpha = transparencyToAlpha(quiztimerOptions.numberTransparency);
-			const bgColorWithAlpha = hexToRgba(bgColor, bgAlpha);
-			const fgColorWithAlpha = hexToRgba(fgColor, fgAlpha);
+			const bgColorWithAlpha = Animations.hexToRgba(bgColor, bgAlpha);
+			const fgColorWithAlpha = Animations.hexToRgba(fgColor, fgAlpha);
 
 			// Clear canvas to transparent before drawing
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1358,8 +1319,8 @@ document.onreadystatechange = async () => {
 					const fgColor = example.style.color;
 
 					// Apply both transparencies
-					example.style.background = hexToRgba(bgColor, bgAlpha);
-					example.style.color = hexToRgba(fgColor, fgAlpha);
+					example.style.background = Animations.hexToRgba(bgColor, bgAlpha);
+					example.style.color = Animations.hexToRgba(fgColor, fgAlpha);
 				}
 			}
 		}

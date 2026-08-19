@@ -142,13 +142,15 @@ describe('public/animations.js', () => {
 			expect(options.lastDrawnTime).toBe(10);
 		});
 
-		it('clears only the pre-animation image once, not every frame', async () => {
+		it('clears the previous frame after every frame draws, since Zoom stacks rather than replaces images', async () => {
 			options.prevImageId = 'before-pulse';
 			const promise = Animations.pulseTransition(canvas, ctx, 10, options);
 			await vi.runAllTimersAsync();
 			await promise;
-			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(1);
-			expect(options.zoomSdk.clearImage).toHaveBeenCalledWith({ imageId: 'before-pulse' });
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(3);
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(1, { imageId: 'before-pulse' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(2, { imageId: 'p-1' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(3, { imageId: 'p-2' });
 		});
 	});
 
@@ -200,13 +202,17 @@ describe('public/animations.js', () => {
 			expect(options.lastDrawnTime).toBe(0);
 		});
 
-		it('clears only the pre-animation image once, not every frame', async () => {
+		it('clears the previous frame after every frame draws, since Zoom stacks rather than replaces images', async () => {
 			options.prevImageId = 'before-shake';
 			const promise = Animations.shakeTransition(canvas, ctx, 0, options);
 			await vi.runAllTimersAsync();
 			await promise;
-			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(1);
-			expect(options.zoomSdk.clearImage).toHaveBeenCalledWith({ imageId: 'before-shake' });
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(5);
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(1, { imageId: 'before-shake' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(2, { imageId: 's-1' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(3, { imageId: 's-2' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(4, { imageId: 's-3' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(5, { imageId: 's-4' });
 		});
 	});
 
@@ -252,13 +258,14 @@ describe('public/animations.js', () => {
 			expect(options.lastColorState).toBe('timeout');
 		});
 
-		it('clears only the pre-animation image once, not every frame', async () => {
+		it('clears the previous frame after every frame draws, since Zoom stacks rather than replaces images', async () => {
 			options.prevImageId = 'before-blink';
 			const promise = Animations.blinkAtTimeout(canvas, ctx, 0, options);
 			await vi.runAllTimersAsync();
 			await promise;
-			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(1);
-			expect(options.zoomSdk.clearImage).toHaveBeenCalledWith({ imageId: 'before-blink' });
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(7);
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(1, { imageId: 'before-blink' });
+			expect(options.zoomSdk.clearImage).toHaveBeenNthCalledWith(2, { imageId: 'blink-img' });
 		});
 
 		it('ends on the selected timeout background, not the inverted black flash', async () => {
