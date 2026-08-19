@@ -395,6 +395,9 @@ document.onreadystatechange = async () => {
 					case 'btn_timerSizePlusFast':
 						value = 5;
 						break;
+					case 'btn_timerSizeReset':
+						value = 300 - quiztimerOptions.boxSize;
+						break;
 				}
 				if (value === undefined) return;
 				quiztimerOptions.boxSize = clampBoxSize(quiztimerOptions.boxSize + value);
@@ -475,6 +478,12 @@ document.onreadystatechange = async () => {
 		 * @returns {Promise<void>}
 		 */
 		async function setPosition(position, gui) {
+			// Resize the canvas for the current boxSize first — the corner math
+			// below reads gui.canvas.width/height, which must already reflect
+			// any pending size change or the box ends up anchored one step
+			// behind (e.g. not flush with a right/bottom corner after resizing).
+			initCanvas(gui);
+
 			switch (position) {
 				case 'posTopLeft':
 					quiztimerOptions.x = 0;
@@ -495,7 +504,6 @@ document.onreadystatechange = async () => {
 					break;
 			}
 			invalidateCache();
-			initCanvas(gui);
 			if (!isDrawing) {
 				isDrawing = true;
 				await drawImage(gui.canvas, gui.ctx, duration);
