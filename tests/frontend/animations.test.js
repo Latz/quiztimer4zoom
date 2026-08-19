@@ -25,24 +25,6 @@ describe('public/animations.js', () => {
 		});
 	});
 
-	describe('blendColors(color1, color2, amount)', () => {
-		it('returns color1 when amount is 0', () => {
-			expect(Animations.blendColors('#000000', '#ffffff', 0)).toBe('#000000');
-		});
-
-		it('returns color2 when amount is 1', () => {
-			expect(Animations.blendColors('#000000', '#ffffff', 1)).toBe('#ffffff');
-		});
-
-		it('returns midpoint at amount 0.5', () => {
-			expect(Animations.blendColors('#000000', '#ffffff', 0.5)).toBe('#808080');
-		});
-
-		it('blends red and blue to purple at 0.5', () => {
-			expect(Animations.blendColors('#ff0000', '#0000ff', 0.5)).toBe('#800080');
-		});
-	});
-
 	describe('drawFrame(canvas, ctx, time, bgColor, fgColor, options)', () => {
 		let canvas, ctx, options;
 
@@ -105,55 +87,6 @@ describe('public/animations.js', () => {
 		});
 	});
 
-	describe('flashTransition(canvas, ctx, time, targetBg, targetFg, options)', () => {
-		let canvas, ctx, options;
-
-		beforeEach(() => {
-			vi.useFakeTimers();
-			canvas = { width: 300, height: 300 };
-			ctx = {
-				clearRect: vi.fn(),
-				fillRect: vi.fn(),
-				fillText: vi.fn(),
-				getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4), width: 1, height: 1 })),
-				fillStyle: '',
-			};
-			options = {
-				backgroundTransparency: 0,
-				numberTransparency: 100,
-				posX: 150, posY: 150,
-				x: 0, y: 0, zIndex: 1,
-				prevImageId: '0',
-				zoomSdk: {
-					drawImage: vi.fn()
-						.mockResolvedValueOnce({ imageId: 'img-1' })
-						.mockResolvedValueOnce({ imageId: 'img-2' })
-						.mockResolvedValueOnce({ imageId: 'img-3' })
-						.mockResolvedValueOnce({ imageId: 'img-4' })
-						.mockResolvedValueOnce({ imageId: 'img-5' })
-						.mockResolvedValueOnce({ imageId: 'img-6' })
-						.mockResolvedValueOnce({ imageId: 'img-7' })
-						.mockResolvedValueOnce({ imageId: 'img-8' }),
-					clearImage: vi.fn(),
-				},
-			};
-		});
-
-		it('calls drawFrame (via drawImage) exactly 8 times', async () => {
-			const promise = Animations.flashTransition(canvas, ctx, 10, '#ff0000', '#000000', options);
-			await vi.runAllTimersAsync();
-			await promise;
-			expect(options.zoomSdk.drawImage).toHaveBeenCalledTimes(8);
-		});
-
-		it('updates prevImageId to last imageId', async () => {
-			const promise = Animations.flashTransition(canvas, ctx, 10, '#ff0000', '#000000', options);
-			await vi.runAllTimersAsync();
-			await promise;
-			expect(options.prevImageId).toBe('img-8');
-		});
-	});
-
 	describe('pulseTransition(canvas, ctx, time, options)', () => {
 		let canvas, ctx, options;
 
@@ -188,7 +121,7 @@ describe('public/animations.js', () => {
 			};
 		});
 
-		it('calls drawImage 3 times (one per scale frame)', async () => {
+		it('calls drawImage exactly 3 times (100% -> 110% -> 100%)', async () => {
 			const promise = Animations.pulseTransition(canvas, ctx, 10, options);
 			await vi.runAllTimersAsync();
 			await promise;

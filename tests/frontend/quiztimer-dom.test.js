@@ -4,13 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Animations are used inside the script — mock them to avoid SDK calls
 vi.mock('../../public/animations.js', () => ({
 	Animations: {
-		flashTransition: vi.fn(() => Promise.resolve()),
 		pulseTransition: vi.fn(() => Promise.resolve()),
 		shakeTransition: vi.fn(() => Promise.resolve()),
 		blinkAtTimeout: vi.fn(() => Promise.resolve()),
 		drawFrame: vi.fn(() => Promise.resolve('img-id')),
 		hexToRgba: vi.fn((hex, alpha) => `rgba(0,0,0,${alpha})`),
-		blendColors: vi.fn(() => '#ffffff'),
 	},
 }));
 
@@ -62,11 +60,9 @@ function buildDom() {
 				<input type="range" id="numberTransparencySlider" min="0" max="100" value="100" />
 			</div>
 			<div id="panel-animation">
-				<input type="checkbox" id="flashAnimationToggle" checked />
 				<input type="checkbox" id="pulseAnimationToggle" checked />
 				<input type="checkbox" id="shakeAnimationToggle" checked />
 				<input type="checkbox" id="blinkAnimationToggle" checked />
-				<input type="checkbox" id="segmentedBlocksToggle" checked />
 			</div>
 		</div>
 		<div id="aboutBox" hidden>

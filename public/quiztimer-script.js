@@ -10,8 +10,26 @@
 /** @type {string} Timer position on screen (posTopLeft, posTopRight, posBottomLeft, posBottomRight) */
 const position = JSON.parse(localStorage.getItem('position')) || 'posTopLeft';
 
+/**
+ * Box size bounds in pixels. Every draw sends an RGBA canvas readback over
+ * the Zoom SDK bridge (width * height * 4 bytes), so an unbounded boxSize
+ * directly multiplies the payload size of every single draw call.
+ */
+const MIN_BOX_SIZE = 100;
+const MAX_BOX_SIZE = 600;
+
+/**
+ * Clamps a box size to [MIN_BOX_SIZE, MAX_BOX_SIZE].
+ *
+ * @param {number} size - Requested box size in pixels
+ * @returns {number} Clamped box size
+ */
+function clampBoxSize(size) {
+	return Math.min(MAX_BOX_SIZE, Math.max(MIN_BOX_SIZE, size));
+}
+
 /** @type {number} Size of the timer display box in pixels */
-const boxSize = JSON.parse(localStorage.getItem('boxSize')) || 300;
+const boxSize = clampBoxSize(JSON.parse(localStorage.getItem('boxSize')) || 300);
 
 /** @type {{number: string, background: string}} Standard state colors */
 const colorsStandard = JSON.parse(localStorage.getItem('colorsStandard')) || {
@@ -49,24 +67,6 @@ const backgroundTransparency = JSON.parse(localStorage.getItem('backgroundTransp
 /** @type {number} Number transparency percentage (0-100) */
 const numberTransparency = JSON.parse(localStorage.getItem('numberTransparency')) || 0;
 
-/** @type {number} Height of the segmented progress blocks in pixels */
-const BLOCK_HEIGHT = 8;
-
-/** @type {number} Vertical gap between the number and the segmented blocks */
-const BLOCK_MARGIN = 8;
-
-/** @type {number} Padding between the segmented blocks and the bottom canvas edge */
-const BLOCK_BOTTOM_PADDING = 6;
-
-/**
- * Total vertical space the segmented blocks occupy, or 0 when they are disabled.
- *
- * @returns {number} Reserved height in pixels
- */
-function segmentedBlocksHeight() {
-	return quiztimerOptions.segmentedBlocks ? BLOCK_HEIGHT + BLOCK_MARGIN + BLOCK_BOTTOM_PADDING : 0;
-}
-
 /**
  * Converts a transparency percentage into a canvas alpha value.
  * The sliders express transparency (0% = fully opaque, 100% = fully transparent),
@@ -79,20 +79,11 @@ function transparencyToAlpha(transparency) {
 	return (100 - transparency) / 100;
 }
 
-/** @type {boolean} Enable flash animation on state transitions */
-const flashAnimation = JSON.parse(localStorage.getItem('flashAnimation')) !== false; // Default to true
-
 /** @type {boolean} Enable pulse animation on time changes */
 const pulseAnimation = JSON.parse(localStorage.getItem('pulseAnimation')) !== false; // Default to true
 
 /** @type {boolean} Enable shake animation on timeout */
 const shakeAnimation = JSON.parse(localStorage.getItem('shakeAnimation')) !== false; // Default to true
-
-/** @type {boolean} Enable segmented countdown blocks */
-const segmentedBlocks = JSON.parse(localStorage.getItem('segmentedBlocks')) === true; // Default to false
-
-/** @type {number} Seconds per segment block */
-const segmentSize = JSON.parse(localStorage.getItem('segmentSize')) || 5;
 
 /** @type {boolean} Enable blinking animation at timeout */
 const blinkAnimation = JSON.parse(localStorage.getItem('blinkAnimation')) !== false; // Default to true
@@ -110,11 +101,8 @@ const blinkAnimation = JSON.parse(localStorage.getItem('blinkAnimation')) !== fa
  * @property {number} x - X position on video canvas
  * @property {number} backgroundTransparency - Background transparency (0-100)
  * @property {number} numberTransparency - Number transparency (0-100)
- * @property {boolean} flashAnimation - Enable flash animation
  * @property {boolean} pulseAnimation - Enable pulse animation
  * @property {boolean} shakeAnimation - Enable shake animation
- * @property {boolean} segmentedBlocks - Enable segmented countdown blocks
- * @property {number} segmentSize - Seconds per segment block
  * @property {boolean} blinkAnimation - Enable blinking animation at timeout
  */
 const quiztimerOptions = {
@@ -129,11 +117,8 @@ const quiztimerOptions = {
 	x,
 	backgroundTransparency,
 	numberTransparency,
-	flashAnimation,
 	pulseAnimation,
 	shakeAnimation,
-	segmentedBlocks,
-	segmentSize,
 	blinkAnimation,
 };
 
@@ -406,7 +391,7 @@ document.onreadystatechange = async () => {
 						break;
 				}
 				if (value === undefined) return;
-				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
+				quiztimerOptions.boxSize = clampBoxSize(quiztimerOptions.boxSize + value);
 				setPosition(quiztimerOptions.position, gui);
 				localStorage.setItem('boxSize', JSON.stringify(quiztimerOptions.boxSize));
 			});
@@ -443,18 +428,6 @@ document.onreadystatechange = async () => {
 				});
 			}
 
-			// Add listener for flash animation toggle
-			const flashAnimationToggle = document.getElementById('flashAnimationToggle');
-			if (flashAnimationToggle) {
-				// Set initial state from options
-				flashAnimationToggle.checked = quiztimerOptions.flashAnimation;
-
-				flashAnimationToggle.addEventListener('change', event => {
-					quiztimerOptions.flashAnimation = event.target.checked;
-					localStorage.setItem('flashAnimation', JSON.stringify(quiztimerOptions.flashAnimation));
-				});
-			}
-
 			// Add listener for pulse animation toggle
 			const pulseAnimationToggle = document.getElementById('pulseAnimationToggle');
 			if (pulseAnimationToggle) {
@@ -488,25 +461,6 @@ document.onreadystatechange = async () => {
 				blinkAnimationToggle.addEventListener('change', event => {
 					quiztimerOptions.blinkAnimation = event.target.checked;
 					localStorage.setItem('blinkAnimation', JSON.stringify(quiztimerOptions.blinkAnimation));
-				});
-			}
-
-			// Add listener for segmented blocks toggle
-			const segmentedBlocksToggle = document.getElementById('segmentedBlocksToggle');
-			if (segmentedBlocksToggle) {
-				// Set initial state from options
-				segmentedBlocksToggle.checked = quiztimerOptions.segmentedBlocks;
-
-				segmentedBlocksToggle.addEventListener('change', event => {
-					quiztimerOptions.segmentedBlocks = event.target.checked;
-					localStorage.setItem('segmentedBlocks', JSON.stringify(quiztimerOptions.segmentedBlocks));
-					invalidateCache();
-					if (!isDrawing) {
-						isDrawing = true;
-						drawImage(gui.canvas, gui.ctx, duration).then(() => {
-							isDrawing = false;
-						});
-					}
 				});
 			}
 
@@ -713,9 +667,8 @@ document.onreadystatechange = async () => {
 			const finalTextHeight = finalMetrics.actualBoundingBoxAscent + finalMetrics.actualBoundingBoxDescent;
 			const padding = (finalTextHeight * paddingPercent) / 100;
 
-			// Set final canvas height, reserving room below the number for the
-			// segmented progress blocks so they don't overlap the digits
-			virtualCanvas.height = finalTextHeight + padding * 2 + segmentedBlocksHeight();
+			// Set final canvas height
+			virtualCanvas.height = finalTextHeight + padding * 2;
 
 			// Calculate position to center text horizontally
 			const x = (virtualCanvas.width - finalTextWidth) / 2;
@@ -904,7 +857,12 @@ document.onreadystatechange = async () => {
 					// Disable the continue button after countdown completes
 					btnContinue.disabled = true;
 					recalcPosX(duration);
-					drawImage(gui.canvas, gui.ctx, duration);
+					if (!isDrawing) {
+						isDrawing = true;
+						drawImage(gui.canvas, gui.ctx, duration).then(() => {
+							isDrawing = false;
+						});
+					}
 				}
 			}, 50);
 		}
@@ -981,7 +939,6 @@ document.onreadystatechange = async () => {
 							gui.canvas,
 							gui.ctx,
 							timeLeft,
-							quiztimerOptions.flashAnimation,
 							quiztimerOptions.pulseAnimation,
 							quiztimerOptions.shakeAnimation
 						);
@@ -1023,10 +980,12 @@ document.onreadystatechange = async () => {
 						timedReset(gui);
 					}
 				} else {
-					// Schedule the next update check (check more frequently to catch all changes)
+					// Schedule the next update check
 					scheduleTimerUpdate(duration, gui);
 				}
-			}, 50); // Check every 50ms to catch time changes
+			}, 150); // The display only needs whole-second resolution; 150ms gives
+			// ~6-7 checks per second, comfortably enough to never miss a
+			// second boundary while cutting JS wake-ups ~3x versus 50ms.
 		}
 
 		/**
@@ -1081,80 +1040,19 @@ document.onreadystatechange = async () => {
 		}
 
 		/**
-		 * Draws segmented blocks below the timer number to visualize countdown progress.
-		 * Breaks the total duration into blocks (e.g., 20 seconds = 4 blocks of 5).
-		 * Filled blocks represent time remaining, empty blocks represent time elapsed.
-		 *
-		 * @param {CanvasRenderingContext2D} ctx - Canvas 2D rendering context
-		 * @param {number} time - Current time remaining in seconds
-		 * @param {number} totalDuration - Total duration of timer in seconds
-		 * @param {number} canvasWidth - Width of the canvas
-		 * @param {number} canvasHeight - Height of the canvas
-		 * @param {string} fgColor - Foreground color (for filled blocks)
-		 * @param {string} _bgColor - Background color (for empty blocks)
-		 */
-		function drawSegmentedBlocks(ctx, time, totalDuration, canvasWidth, canvasHeight, fgColor, _bgColor) {
-			if (!quiztimerOptions.segmentedBlocks) return;
-
-			const segmentSize = quiztimerOptions.segmentSize;
-			const totalBlocks = Math.ceil(totalDuration / segmentSize);
-			const filledBlocks = Math.ceil(time / segmentSize);
-
-			// Block dimensions
-			const blockHeight = BLOCK_HEIGHT;
-			const blockGap = 4;
-			const totalBlockWidth = canvasWidth * 0.8; // Use 80% of canvas width
-			const blockWidth = (totalBlockWidth - (totalBlocks - 1) * blockGap) / totalBlocks;
-
-			// Skip drawing when there are so many blocks they'd collapse to slivers
-			if (blockWidth < 1) return;
-
-			// Position blocks in the space reserved below the number,
-			// inset from the bottom edge so they don't sit flush against it
-			const blockY = canvasHeight - blockHeight - BLOCK_BOTTOM_PADDING;
-			const startX = (canvasWidth - totalBlockWidth) / 2;
-
-			// Draw each block
-			for (let i = 0; i < totalBlocks; i++) {
-				const blockX = startX + i * (blockWidth + blockGap);
-				const isFilled = i < filledBlocks;
-
-				// Set color based on filled state
-				if (isFilled) {
-					const fgAlpha = transparencyToAlpha(quiztimerOptions.numberTransparency);
-					ctx.fillStyle = hexToRgba(fgColor, fgAlpha);
-				} else {
-					const bgAlpha = Math.max(0.3, transparencyToAlpha(quiztimerOptions.backgroundTransparency));
-					ctx.fillStyle = hexToRgba(fgColor, bgAlpha * 0.3); // Dimmed version of fg color
-				}
-
-				// Draw block with rounded corners (fallback to fillRect if roundRect not available)
-				if (typeof ctx.roundRect === 'function') {
-					ctx.beginPath();
-					ctx.roundRect(blockX, blockY, blockWidth, blockHeight, 2);
-					ctx.fill();
-				} else {
-					// Fallback to regular rectangle
-					ctx.fillRect(blockX, blockY, blockWidth, blockHeight);
-				}
-			}
-		}
-
-		/**
 		 * Draws the timer display on the canvas and sends it to Zoom SDK.
 		 * Optimized with caching to reduce unnecessary SDK calls.
-		 * Handles state transitions with optional animations (flash, pulse, shake).
+		 * Handles state transitions with optional animations (pulse, shake).
 		 * Applies transparency settings and manages image replacement on Zoom canvas.
 		 *
 		 * @param {HTMLCanvasElement} canvas - Canvas element to draw on
 		 * @param {CanvasRenderingContext2D} ctx - Canvas 2D rendering context
 		 * @param {number} time - Time value to display
-		 * @param {boolean} [enableFlash=false] - Enable flash animation on state transitions
 		 * @param {boolean} [enablePulse=false] - Enable pulse animation on time changes
 		 * @param {boolean} [enableShake=false] - Enable shake animation on timeout
 		 * @returns {Promise<void>}
 		 */
-		async function drawImage(canvas, ctx, time, enableFlash = false, enablePulse = false, enableShake = false) {
+		async function drawImage(canvas, ctx, time, enablePulse = false, enableShake = false) {
 			// Determine if visual content has changed
 			const currentColorState = getColorState(time);
 			const contentChanged = lastDrawnTime !== time || lastColorState !== currentColorState;
@@ -1199,15 +1097,6 @@ document.onreadystatechange = async () => {
 				return;
 			}
 
-			// If state changed and flash is enabled, play flash animation
-			if (stateChanged && enableFlash) {
-				await Animations.flashTransition(canvas, ctx, time, bgColor, fgColor, animOptions);
-				prevImageId = animOptions.prevImageId;
-				lastDrawnTime = time;
-				lastColorState = currentColorState;
-				return;
-			}
-
 			// If only time changed and pulse is enabled, play pulse animation
 			if (timeChanged && enablePulse) {
 				await Animations.pulseTransition(canvas, ctx, time, animOptions);
@@ -1234,9 +1123,6 @@ document.onreadystatechange = async () => {
 			// Draw text
 			ctx.fillStyle = fgColorWithAlpha;
 			ctx.fillText(time, posX, posY);
-
-			// Draw segmented blocks below the number
-			drawSegmentedBlocks(ctx, time, duration, canvas.width, canvas.height, fgColor, bgColor);
 
 			// Cache the image data
 			cachedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
