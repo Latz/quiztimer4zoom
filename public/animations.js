@@ -116,22 +116,25 @@ const Animations = {
 		const frames = 3;
 		const frameDelay = 33;
 		const scales = [1.0, 1.1, 1.0];
+		const imageIdBeforeAnimation = options.prevImageId;
 
 		for (let i = 0; i < frames; i++) {
 			const currentScale = scales[i];
 
 			const newImageId = await this.drawFrameWithScale(canvas, ctx, time, currentScale, options);
-
-			// Clear old image
-			if (options.prevImageId !== '0') {
-				options.zoomSdk.clearImage({ imageId: options.prevImageId });
-			}
 			options.prevImageId = newImageId;
 
 			// Wait before next frame (except on last frame)
 			if (i < frames - 1) {
 				await new Promise(resolve => setTimeout(resolve, frameDelay));
 			}
+		}
+
+		// Clear only the image that was displayed before this animation began;
+		// each intermediate frame is superseded by the next frame's drawImage,
+		// so it never needs its own clear.
+		if (imageIdBeforeAnimation !== '0') {
+			options.zoomSdk.clearImage({ imageId: imageIdBeforeAnimation });
 		}
 
 		// Update cache tracking
@@ -182,22 +185,25 @@ const Animations = {
 		const frames = 5;
 		const frameDelay = 30; // 30ms per frame = ~150ms total
 		const offsets = [0, -8, 8, -4, 0]; // Wobble left and right, then center
+		const imageIdBeforeAnimation = options.prevImageId;
 
 		for (let i = 0; i < frames; i++) {
 			const currentOffset = offsets[i];
 
 			const newImageId = await this.drawFrameWithOffset(canvas, ctx, time, currentOffset, options);
-
-			// Clear old image
-			if (options.prevImageId !== '0') {
-				options.zoomSdk.clearImage({ imageId: options.prevImageId });
-			}
 			options.prevImageId = newImageId;
 
 			// Wait before next frame (except on last frame)
 			if (i < frames - 1) {
 				await new Promise(resolve => setTimeout(resolve, frameDelay));
 			}
+		}
+
+		// Clear only the image that was displayed before this animation began;
+		// each intermediate frame is superseded by the next frame's drawImage,
+		// so it never needs its own clear.
+		if (imageIdBeforeAnimation !== '0') {
+			options.zoomSdk.clearImage({ imageId: imageIdBeforeAnimation });
 		}
 
 		// Update cache tracking
@@ -218,6 +224,7 @@ const Animations = {
 		// colors instead of finishing on the swapped state.
 		const frames = 7; // 3 complete color swaps, settling back on the real colors
 		const frameDelay = 200; // 200ms per frame = slower, more dramatic blink
+		const imageIdBeforeAnimation = options.prevImageId;
 
 		for (let i = 0; i < frames; i++) {
 			const isEven = i % 2 === 0;
@@ -225,17 +232,19 @@ const Animations = {
 			const currentFgColor = isEven ? fgColor : bgColor;
 
 			const newImageId = await this.drawFrame(canvas, ctx, time, currentBgColor, currentFgColor, options);
-
-			// Clear old image
-			if (options.prevImageId !== '0') {
-				zoomSdk.clearImage({ imageId: options.prevImageId });
-			}
 			options.prevImageId = newImageId;
 
 			// Wait before next frame
 			if (i < frames - 1) {
 				await new Promise(resolve => setTimeout(resolve, frameDelay));
 			}
+		}
+
+		// Clear only the image that was displayed before this animation began;
+		// each intermediate frame is superseded by the next frame's drawImage,
+		// so it never needs its own clear.
+		if (imageIdBeforeAnimation !== '0') {
+			zoomSdk.clearImage({ imageId: imageIdBeforeAnimation });
 		}
 
 		// Update cache tracking

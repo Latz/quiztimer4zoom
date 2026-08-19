@@ -141,6 +141,15 @@ describe('public/animations.js', () => {
 			await promise;
 			expect(options.lastDrawnTime).toBe(10);
 		});
+
+		it('clears only the pre-animation image once, not every frame', async () => {
+			options.prevImageId = 'before-pulse';
+			const promise = Animations.pulseTransition(canvas, ctx, 10, options);
+			await vi.runAllTimersAsync();
+			await promise;
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(1);
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledWith({ imageId: 'before-pulse' });
+		});
 	});
 
 	describe('shakeTransition(canvas, ctx, time, options)', () => {
@@ -190,6 +199,15 @@ describe('public/animations.js', () => {
 			await promise;
 			expect(options.lastDrawnTime).toBe(0);
 		});
+
+		it('clears only the pre-animation image once, not every frame', async () => {
+			options.prevImageId = 'before-shake';
+			const promise = Animations.shakeTransition(canvas, ctx, 0, options);
+			await vi.runAllTimersAsync();
+			await promise;
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(1);
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledWith({ imageId: 'before-shake' });
+		});
 	});
 
 	describe('blinkAtTimeout(canvas, ctx, time, options)', () => {
@@ -232,6 +250,15 @@ describe('public/animations.js', () => {
 			await vi.runAllTimersAsync();
 			await promise;
 			expect(options.lastColorState).toBe('timeout');
+		});
+
+		it('clears only the pre-animation image once, not every frame', async () => {
+			options.prevImageId = 'before-blink';
+			const promise = Animations.blinkAtTimeout(canvas, ctx, 0, options);
+			await vi.runAllTimersAsync();
+			await promise;
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledTimes(1);
+			expect(options.zoomSdk.clearImage).toHaveBeenCalledWith({ imageId: 'before-blink' });
 		});
 
 		it('ends on the selected timeout background, not the inverted black flash', async () => {
