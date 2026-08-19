@@ -280,11 +280,11 @@ describe('public/animations.js', () => {
 			};
 		});
 
-		it('calls drawImage 6 times (3 blink cycles)', async () => {
+		it('calls drawImage 7 times (3 black flashes, ending on the real background)', async () => {
 			const promise = Animations.blinkAtTimeout(canvas, ctx, 0, options);
 			await vi.runAllTimersAsync();
 			await promise;
-			expect(options.zoomSdk.drawImage).toHaveBeenCalledTimes(6);
+			expect(options.zoomSdk.drawImage).toHaveBeenCalledTimes(7);
 		});
 
 		it('sets lastColorState to timeout after completion', async () => {
@@ -292,6 +292,31 @@ describe('public/animations.js', () => {
 			await vi.runAllTimersAsync();
 			await promise;
 			expect(options.lastColorState).toBe('timeout');
+		});
+
+		it('ends on the selected timeout background, not the inverted black flash', async () => {
+			const fillStyles = [];
+			// Capture fillStyle at the moment each background fillRect happens
+			Object.defineProperty(ctx, 'fillStyle', {
+				get() {
+					return this._fillStyle;
+				},
+				set(value) {
+					this._fillStyle = value;
+					fillStyles.push(value);
+				},
+			});
+
+			const promise = Animations.blinkAtTimeout(canvas, ctx, 0, options);
+			await vi.runAllTimersAsync();
+			await promise;
+
+			// drawFrame sets fillStyle twice per frame: background, then text.
+			// The last background fillStyle (second-to-last overall) must be the
+			// real timeout background color, not the inverted black.
+			const lastBgFillStyle = fillStyles[fillStyles.length - 2];
+			expect(lastBgFillStyle).not.toBe('#000000');
+			expect(lastBgFillStyle).toMatch(/rgba\(255, 0, 0/); // mockTimeoutColors.background = '#ff0000'
 		});
 	});
 });

@@ -956,7 +956,7 @@ document.onreadystatechange = async () => {
 		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
 		 */
 		function scheduleTimerUpdate(duration, gui) {
-			timerTimeoutId = setTimeout(() => {
+			timerTimeoutId = setTimeout(async () => {
 				const elapsedMs = performance.now() - timerStartTime;
 
 				// Calculate the current time based on actual elapsed time, not setInterval ticks
@@ -972,19 +972,20 @@ document.onreadystatechange = async () => {
 						recalcPosX(timeLeft);
 					}
 
-					// Draw the new time with animations (if enabled)
+					// Draw the new time with animations (if enabled). Awaited so
+					// isDrawing has settled before the timeLeft<=0 check below
+					// decides whether to trigger the blink animation.
 					if (!isDrawing) {
 						isDrawing = true;
-						drawImage(
+						await drawImage(
 							gui.canvas,
 							gui.ctx,
 							timeLeft,
 							quiztimerOptions.flashAnimation,
 							quiztimerOptions.pulseAnimation,
 							quiztimerOptions.shakeAnimation
-						).then(() => {
-							isDrawing = false;
-						});
+						);
+						isDrawing = false;
 					}
 				}
 

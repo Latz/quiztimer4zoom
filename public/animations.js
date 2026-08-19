@@ -247,7 +247,9 @@ const Animations = {
 		// Create inverted colors for blink effect
 		const invertedBgColor = '#000000'; // Black for dramatic effect
 
-		const frames = 6; // 6 frames = 3 complete blinks
+		// 7 frames (odd) so the animation starts AND ends on the selected
+		// background instead of finishing on the inverted black flash.
+		const frames = 7; // 3 complete black flashes, settling back on the real color
 		const frameDelay = 200; // 200ms per frame = slower, more dramatic blink
 
 		for (let i = 0; i < frames; i++) {
