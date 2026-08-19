@@ -953,7 +953,6 @@ document.onreadystatechange = async () => {
 				// Only update display if the time value has changed
 				if (newTimeLeft !== lastDisplayedTime) {
 					timeLeft = newTimeLeft;
-					lastDisplayedTime = newTimeLeft;
 
 					if (timeLeft % 10 === 9) {
 						recalcPosX(timeLeft);
@@ -962,7 +961,13 @@ document.onreadystatechange = async () => {
 					// Draw the new time with animations (if enabled). Awaited so
 					// isDrawing has settled before the timeLeft<=0 check below
 					// decides whether to trigger the blink animation.
+					//
+					// lastDisplayedTime only advances here, once a draw actually
+					// starts — not unconditionally above. Otherwise a busy
+					// isDrawing guard would mark a value as "shown" when it was
+					// never drawn, silently dropping that second from the display.
 					if (!isDrawing) {
+						lastDisplayedTime = newTimeLeft;
 						isDrawing = true;
 						await drawImage(
 							gui.canvas,
