@@ -1,6 +1,6 @@
-/* Zoom Apps SDK v0.16.33  */
+/* Zoom Apps SDK v0.16.41  */
 /**
- * Copyright (c) 2025 Zoom Video Communications, Inc.
+ * Copyright (c) 2026 Zoom Video Communications, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -249,6 +249,7 @@ var zoomSdk = (function () {
         NativeApis["GET_WAITING_ROOM_STATE"] = "getWaitingRoomState";
         NativeApis["SET_WAITING_ROOM_STATE"] = "setWaitingRoomState";
         NativeApis["GET_PHONE_CONTEXT"] = "getPhoneContext";
+        NativeApis["GET_PHONE_VARIABLE_VALUE"] = "getPhoneVariableValue";
         NativeApis["MAKE_PHONE_CALL"] = "makePhoneCall";
         NativeApis["GET_ENGAGEMENT_CONTEXT"] = "getEngagementContext";
         NativeApis["GET_ENGAGEMENT_STATUS"] = "getEngagementStatus";
@@ -362,6 +363,7 @@ var zoomSdk = (function () {
         NativeEvents["ON_BEFORE_MAIL_SEND"] = "onBeforeMailSend";
         NativeEvents["ON_UPGRADE_REQUEST"] = "onUpgradeRequest";
         NativeEvents["ON_ZOOM_ROOM_EVENT"] = "onZoomRoomEvent";
+        NativeEvents["ON_RTMS_STATUS_CHANGE"] = "onRTMSStatusChange";
     })(NativeEvents || (NativeEvents = {}));
     var Timeouts;
     (function (Timeouts) {
@@ -434,7 +436,13 @@ var zoomSdk = (function () {
     var addedWebClientEventListener = false;
     function detectBrowser(window) {
         var _a, _b, _c;
-        if (window.android) {
+        if (inIframe()) {
+            return {
+                type: 'webClient',
+                nativeInterface: window.parent,
+            };
+        }
+        else if (window.android) {
             return {
                 type: 'android',
                 nativeInterface: window.android,
@@ -450,12 +458,6 @@ var zoomSdk = (function () {
             return {
                 type: 'webkit',
                 nativeInterface: window.webkit.messageHandlers.jsOCHelper,
-            };
-        }
-        else if (inIframe()) {
-            return {
-                type: 'webClient',
-                nativeInterface: window.parent,
             };
         }
     }
@@ -2672,6 +2674,13 @@ var zoomSdk = (function () {
                 });
             });
         };
+        ZoomSdk.prototype.getPhoneVariableValue = function (options) {
+            return __awaiter(this, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    return [2 , this.callZoomApi(NativeApis.GET_PHONE_VARIABLE_VALUE, options)];
+                });
+            });
+        };
         ZoomSdk.prototype.onPhoneCalleeAnswered = function (handler) {
             this.addEventListener(NativeEvents.ON_PHONE_CALLEE_ANSWERED, handler);
         };
@@ -3116,6 +3125,9 @@ var zoomSdk = (function () {
                     return [2 , this.callZoomApi(NativeApis.GET_RTMS_STATUS)];
                 });
             });
+        };
+        ZoomSdk.prototype.onRTMSStatusChange = function (handler) {
+            this.addEventListener(NativeEvents.ON_RTMS_STATUS_CHANGE, handler);
         };
         return ZoomSdk;
     }());

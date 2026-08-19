@@ -1,167 +1,226 @@
 <!DOCTYPE html>
 <html lang="de">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<meta name="description" content="Quiz Timer für Zoom Meetings - Zeigt einen Countdown auf dem Videobild" />
-		<meta name="theme-color" content="#000000" />
-		<meta name="referrer" content="no-referrer" />
-		<title>Quiztimer4Zoom</title>
-		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<head>
+	<!-- Character encoding and viewport settings -->
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="description" content="Quiz Timer für Zoom Meetings - Zeigt einen Countdown auf dem Videobild" />
+	<meta name="theme-color" content="#000000" />
+	<meta name="referrer" content="no-referrer" />
+	<title>Quiztimer4Zoom</title>
 
-		<!-- Preload critical resources -->
-		<link rel="preload" href="/styles.css?v=bd2baf75" as="style" />
+	<!-- Favicon and stylesheets -->
+	<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+	<link rel="preload" href="/styles.css?v=0" as="style" />
+	<link rel="stylesheet" href="/styles.css?v=0" />
 
-		<!-- Stylesheets -->
-		<link rel="stylesheet" href="/styles.css?v=bd2baf75" />
+	<!-- Zoom SDK integration -->
+	<script src="/sdk.js?v=01341b40"></script>
+	<script>
+		// Suppress Zoom SDK errors to prevent console clutter
+		// These errors are expected during normal operation
+		globalThis.addEventListener('unhandledrejection', event => {
+			if (event.reason?.message?.includes('Zoom client encountered an error')) event.preventDefault();
+		});
+		const originalError = console.error;
+		console.error = function (...args) {
+			if (args[0]?.message?.includes('Zoom client encountered an error')) return;
+			originalError.apply(console, args);
+		};
+	</script>
 
-		<!-- Scripts -->
-		<script src="/sdk.js?v=01341b40"></script>
+	<!-- Application scripts -->
+	<script src="/animations.js?v=0"></script>
+	<script src="/quiztimer-script.js?v=4e9d98e3" type="module"></script>
+</head>
+<body>
+	<div id="container">
+		<!-- Main timer controls: Primary action buttons for timer operation -->
+		<fieldset id="actions">
+			<legend class="sr-only">Timer Steuerung</legend>
+			<!-- Start/Stop button: Toggles timer between running and paused states -->
+			<div class="div1">
+				<button id="btn_startStop" class="ripple-button" aria-label="Start - Timer starten oder stoppen">Start</button>
+			</div>
+			<!-- Continue button: Resumes a stopped timer with progress animation -->
+			<div class="div2">
+				<button id="btn_continue" class="progress-button" aria-label="Weiter - Timer fortsetzen">
+					<span class="button-text">Weiter</span>
+					<span class="progress-fill"></span>
+				</button>
+			</div>
+			<!-- Quick timer preset buttons -->
+			<div class="div3">
+				<button id="btn_20sec" aria-label="20 Sek. - Timer auf 20 Sekunden setzen">20 Sek.</button>
+			</div>
+			<div class="div4">
+				<button id="btn_30sec" aria-label="30 Sek. - Timer auf 30 Sekunden setzen">30 Sek.</button>
+			</div>
+		</fieldset>
 
-		<!-- Suppress Zoom SDK console errors -->
-		<script>
-			// Suppress unhandled promise rejections from Zoom SDK
-			window.addEventListener('unhandledrejection', event => {
-				if (event.reason && event.reason.message && event.reason.message.includes('Zoom client encountered an error')) {
-					event.preventDefault(); // Suppress the error
-				}
-			});
+		<!-- Secondary actions: Utility buttons for settings and modes -->
+		<fieldset id="subActions">
+			<legend class="sr-only">Zusätzliche Aktionen</legend>
+			<button title="Optionen" id="btn_options" aria-label="Optionen öffnen">🛠️</button>
+			<button title="Über Quiztimer4Zoom" id="btn_help" aria-label="Hilfe anzeigen">❓</button>
+			<button title="Dark Mode umschalten" id="btn_darkmode" aria-label="Dark Mode umschalten">🌙</button>
+			<!-- Panic button: Emergency reset for timer -->
+			<button title="Panik! Timer zurücksetzen" id="btn_panic" aria-label="Timer zurücksetzen">💥</button>
+		</fieldset>
 
-			// Also suppress console errors from SDK
-			const originalError = console.error;
-			console.error = function (...args) {
-				// Check if error is from Zoom SDK
-				if (
-					args[0] &&
-					typeof args[0] === 'object' &&
-					args[0].message &&
-					args[0].message.includes('Zoom client encountered an error')
-				) {
-					return; // Suppress Zoom SDK errors
-				}
-				originalError.apply(console, args); // Pass other errors through
-			};
-		</script>
+		<!-- Options panel: Collapsible settings panel with tabbed interface -->
+		<aside id="options" aria-label="Einstellungen">
+			<!-- Tabs navigation: Four tabs for different customization categories -->
+			<div id="tabsNav" role="tablist">
+				<button id="tab-position" class="tab-button" role="tab" aria-selected="true" aria-controls="panel-position">Position</button>
+				<button id="tab-size" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-size">Größe</button>
+				<button id="tab-colors" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-colors">Farben</button>
+				<button id="tab-animation" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-animation">Animation</button>
+			</div>
 
-		<script src="/quiztimer-script.js?v=4e9d98e3" type="module"></script>
-	</head>
-	<body>
-		<div id="container">
-			<!-- Main timer controls -->
-			<section id="actions" role="group" aria-label="Timer Steuerung">
-				<div class="div1">
-					<button id="btn_startStop" class="ripple-button" aria-label="Start oder Stop des Timers">Start</button>
+			<!-- Position Panel: Controls for timer placement on screen -->
+			<div id="panel-position" class="tab-panel" role="tabpanel" aria-labelledby="tab-position">
+				<div id="corners">
+					<!-- Four-button grid for corner positioning -->
+					<div id="positionCorners">
+						<button id="posTopLeft" aria-label="Position oben links">🡤</button>
+						<button id="posTopRight" aria-label="Position oben rechts">🡥</button>
+						<button id="posBottomLeft" aria-label="Position unten links">🡧</button>
+						<button id="posBottomRight" aria-label="Position unten rechts">🡦</button>
+					</div>
 				</div>
-				<div class="div2">
-					<button id="btn_continue" class="progress-button" aria-label="Timer fortsetzen">
-						<span class="button-text">Weiter</span>
-						<span class="progress-fill"></span>
-					</button>
-				</div>
-				<div class="div3">
-					<button id="btn_20sec" aria-label="Timer auf 20 Sekunden setzen">20 Sek.</button>
-				</div>
-				<div class="div4">
-					<button id="btn_30sec" aria-label="Timer auf 30 Sekunden setzen">30 Sek.</button>
-				</div>
-			</section>
+			</div>
 
-			<!-- Secondary actions -->
-			<section id="subActions" role="group" aria-label="Zusätzliche Aktionen">
-				<button title="Optionen" id="btn_options" aria-label="Optionen öffnen">🛠️</button>
-				<button title="Über Quiztimer4Zoom" id="btn_help" aria-label="Hilfe anzeigen">❓</button>
-				<button title="Panik! Timer zurücksetzen" id="btn_panic" aria-label="Timer zurücksetzen">💥</button>
-			</section>
-
-			<!-- Options panel -->
-			<aside id="options" aria-label="Einstellungen">
-				<!-- Tabs navigation -->
-				<div id="tabsNav" role="tablist">
-					<button id="tab-position" class="tab-button" role="tab" aria-selected="true" aria-controls="panel-position">Position</button>
-					<button id="tab-size" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-size">Größe</button>
-					<button id="tab-colors" class="tab-button" role="tab" aria-selected="false" aria-controls="panel-colors">Farben</button>
+			<!-- Size Panel: Controls for adjusting timer display size -->
+			<div id="panel-size" class="tab-panel" role="tabpanel" aria-labelledby="tab-size" hidden>
+				<!-- Five-button control for fine and coarse size adjustments -->
+				<div id="timerSize">
+					<button class="btn_timerSize" id="btn_timerSizeMinusFast" title="Viel kleiner" aria-label="-- Viel kleiner">--</button>
+					<button class="btn_timerSize" id="btn_timerSizeMinus" title="Kleiner" aria-label="- Kleiner">-</button>
+					<button class="btn_timerSize" id="btn_timerSizeReset" title="Auf Standardwert (300px) zurücksetzen" aria-label="o Auf Standardwert zurücksetzen">o</button>
+					<button class="btn_timerSize" id="btn_timerSizePlus" title="Größer" aria-label="+ Größer">+</button>
+					<button class="btn_timerSize" id="btn_timerSizePlusFast" title="Viel größer" aria-label="++ Viel größer">++</button>
 				</div>
+				<!-- Live region for announcing size changes to screen readers -->
+				<span id="val_timerSize_container" aria-live="polite"></span>
+			</div>
 
-				<!-- Tab panels -->
-				<div id="panel-position" class="tab-panel" role="tabpanel" aria-labelledby="tab-position">
-					<div id="corners">
-						<div id="positionCorners">
-							<button id="posTopLeft" aria-label="Position oben links">🡤</button>
-							<button id="posTopRight" aria-label="Position oben rechts">🡥</button>
-							<button id="posBottomLeft" aria-label="Position unten links">🡧</button>
-							<button id="posBottomRight" aria-label="Position unten rechts">🡦</button>
+			<!-- Colors Panel: Customization for timer appearance in different states -->
+			<div id="panel-colors" class="tab-panel" role="tabpanel" aria-labelledby="tab-colors" hidden>
+				<!-- Standard Colors: Used during normal timer countdown -->
+				<div class="colorHeading">Standard</div>
+				<div class="colorcontainer">
+					<section class="colorcontainer">
+						<div><label for="colorSelectorNumberStandard" class="sr-only">Ziffer</label><input type="color" id="colorSelectorNumberStandard" aria-label="Ziffern" /></div>
+						<div><label for="colorSelectorBackgroundStandard" class="sr-only">Hintergrund</label><input type="color" id="colorSelectorBackgroundStandard" aria-label="Hintergrund" /></div>
+						<div class="number">Ziffern</div>
+						<div class="background">Hintergrund</div>
+						<div class="example" id="colorExampleStandard" aria-label="Farbvoransicht Standard">20</div>
+					</section>
+				</div>
+				<!-- Warning Colors: Applied when timer reaches warning threshold -->
+				<div class="colorHeading">Warnung</div>
+				<div class="colorcontainer">
+					<section class="colorcontainer">
+						<div><label for="colorSelectorNumberWarning" class="sr-only">Ziffer</label><input type="color" id="colorSelectorNumberWarning" aria-label="Ziffer" /></div>
+						<div><label for="colorSelectorBackgroundWarning" class="sr-only">Hintergrund</label><input type="color" id="colorSelectorBackgroundWarning" aria-label="Hintergrund" /></div>
+						<div class="number">Ziffern</div>
+						<div class="background">Hintergrund</div>
+						<div class="example" id="colorExampleWarning" aria-label="Farbvoransicht Warnung">20</div>
+					</section>
+				</div>
+				<!-- Timeout Colors: Displayed when timer reaches zero -->
+				<div class="colorHeading">Timeout</div>
+				<div class="colorcontainer">
+					<section class="colorcontainer">
+						<div><label for="colorSelectorNumberTimeout" class="sr-only">Ziffer</label><input type="color" id="colorSelectorNumberTimeout" aria-label="Ziffer" /></div>
+						<div><label for="colorSelectorBackgroundTimeout" class="sr-only">Hintergrund</label><input type="color" id="colorSelectorBackgroundTimeout" aria-label="Hintergrund" /></div>
+						<div class="number">Ziffern</div>
+						<div class="background">Hintergrund</div>
+						<div class="example" id="colorExampleTimeout" aria-label="Farbvoransicht Timeout">20</div>
+					</section>
+				</div>
+				<!-- Transparency Controls: Sliders for opacity adjustment -->
+				<div id="transparencySection">
+					<div class="transparencyItem">
+						<label for="backgroundTransparencySlider" class="transparencyLabel">Hintergrund Transparenz</label>
+						<div class="sliderContainer">
+							<span class="sliderLabel">0%</span>
+							<input type="range" id="backgroundTransparencySlider" min="0" max="100" value="0" aria-label="Hintergrund Transparenz" />
+							<span class="sliderLabel">100%</span>
+						</div>
+					</div>
+					<div class="transparencyItem">
+						<label for="numberTransparencySlider" class="transparencyLabel">Ziffer Transparenz</label>
+						<div class="sliderContainer">
+							<span class="sliderLabel">0%</span>
+							<input type="range" id="numberTransparencySlider" min="0" max="100" value="0" aria-label="Ziffer Transparenz" />
+							<span class="sliderLabel">100%</span>
 						</div>
 					</div>
 				</div>
+			</div>
 
-				<div id="panel-size" class="tab-panel" role="tabpanel" aria-labelledby="tab-size" hidden>
-					<div id="timerSize">
-						<button class="btn_timerSize" id="btn_timerSizeMinusFast" title="Viel kleiner">&lt;&lt;</button>
-						<button class="btn_timerSize" id="btn_timerSizeMinus" title="Kleiner">&lt;</button>
-						<span id="val_timerSize_container" aria-live="polite"></span>
-						<button class="btn_timerSize" id="btn_timerSizePlus" title="Größer">&gt;</button>
-						<button class="btn_timerSize" id="btn_timerSizePlusFast" title="Viel größer">&gt;&gt;</button>
-					</div>
+			<!-- Animation Panel: Toggle visual effects and animations -->
+			<div id="panel-animation" class="tab-panel" role="tabpanel" aria-labelledby="tab-animation" hidden>
+				<!-- Flash animation: Visual feedback during state transitions -->
+				<div class="animationOptions">
+					<label for="flashAnimationToggle" class="animationLabel">
+						<input type="checkbox" id="flashAnimationToggle" checked />
+						<span>Flash-Animation bei Farbwechsel</span>
+						<span class="info-icon" data-tooltip="Zeigt einen kurzen weißen Blitz beim Übergang zwischen Timer-Stati (Standard → Warnung → Timeout)">ℹ️</span>
+					</label>
 				</div>
-
-				<div id="panel-colors" class="tab-panel" role="tabpanel" aria-labelledby="tab-colors" hidden>
-					<div class="colorHeading">Standard</div>
-					<div class="colorcontainer">
-						<section class="colorcontainer">
-							<div>
-								<label for="colorSelectorNumberStandard" class="sr-only">Ziffernfarbe Standard</label>
-								<input type="color" id="colorSelectorNumberStandard" aria-label="Ziffernfarbe Standard" />
-							</div>
-							<div>
-								<label for="colorSelectorBackgroundStandard" class="sr-only">Hintergrundfarbe Standard</label>
-								<input type="color" id="colorSelectorBackgroundStandard" aria-label="Hintergrundfarbe Standard" />
-							</div>
-							<div class="number">Ziffern</div>
-							<div class="background">Hintergrund</div>
-							<div class="example" id="colorExampleStandard" aria-label="Farbvoransicht Standard">20</div>
-						</section>
-					</div>
-
-					<div class="colorHeading">Warnung</div>
-					<div class="colorcontainer">
-						<section class="colorcontainer">
-							<div>
-								<label for="colorSelectorNumberWarning" class="sr-only">Ziffernfarbe Warnung</label>
-								<input type="color" id="colorSelectorNumberWarning" aria-label="Ziffernfarbe Warnung" />
-							</div>
-							<div>
-								<label for="colorSelectorBackgroundWarning" class="sr-only">Hintergrundfarbe Warnung</label>
-								<input type="color" id="colorSelectorBackgroundWarning" aria-label="Hintergrundfarbe Warnung" />
-							</div>
-							<div class="number">Ziffern</div>
-							<div class="background">Hintergrund</div>
-							<div class="example" id="colorExampleWarning" aria-label="Farbvoransicht Warnung">20</div>
-						</section>
-					</div>
-
-					<div class="colorHeading">Timeout</div>
-					<div class="colorcontainer">
-						<section class="colorcontainer">
-							<div>
-								<label for="colorSelectorNumberTimeout" class="sr-only">Ziffernfarbe Timeout</label>
-								<input type="color" id="colorSelectorNumberTimeout" aria-label="Ziffernfarbe Timeout" />
-							</div>
-							<div>
-								<label for="colorSelectorBackgroundTimeout" class="sr-only">Hintergrundfarbe Timeout</label>
-								<input type="color" id="colorSelectorBackgroundTimeout" aria-label="Hintergrundfarbe Timeout" />
-							</div>
-							<div class="number">Ziffern</div>
-							<div class="background">Hintergrund</div>
-							<div class="example" id="colorExampleTimeout" aria-label="Farbvoransicht Timeout">20</div>
-						</section>
-					</div>
+				<!-- Pulse animation: Emphasizes each second change -->
+				<div class="animationOptions">
+					<label for="pulseAnimationToggle" class="animationLabel">
+						<input type="checkbox" id="pulseAnimationToggle" checked />
+						<span>Puls-Animation bei Zahlenwechsel</span>
+						<span class="info-icon" data-tooltip="Kurze Vergrößerung (100% → 110% → 100%) bei jeder Sekunde (~100ms)">ℹ️</span>
+					</label>
 				</div>
+				<!-- Shake animation: Attention-grabbing effect at timeout -->
+				<div class="animationOptions">
+					<label for="shakeAnimationToggle" class="animationLabel">
+						<input type="checkbox" id="shakeAnimationToggle" checked />
+						<span>Shake-Animation beim Timeout</span>
+						<span class="info-icon" data-tooltip="Leichte Wackelbewegung beim Erreichen von 0 Sekunden">ℹ️</span>
+					</label>
+				</div>
+				<!-- Blink animation: Blinking effect when timer reaches zero -->
+				<div class="animationOptions">
+					<label for="blinkAnimationToggle" class="animationLabel">
+						<input type="checkbox" id="blinkAnimationToggle" checked />
+						<span>Blink-Animation bei Null</span>
+						<span class="info-icon" data-tooltip="Dramatisches Blinken (rot/schwarz) wenn der Timer 0 erreicht (~1.2 Sekunden)">ℹ️</span>
+					</label>
+				</div>
+				<!-- Segmented blocks: Visual countdown segments -->
+				<div class="animationOptions">
+					<label for="segmentedBlocksToggle" class="animationLabel">
+						<input type="checkbox" id="segmentedBlocksToggle" />
+						<span>Countdown-Segmente</span>
+						<span class="info-icon" data-tooltip="Zeigt visuelle Blöcke unter der Zahl (z.B. 20 Sek. = 4 Blöcke à 5 Sek.)">ℹ️</span>
+					</label>
+				</div>
+			</div>
+			<hr />
+		</aside>
+	</div>
 
-				<hr />
-			</aside>
+	<!-- About Box Modal: Application information dialog -->
+	<dialog id="aboutBox" class="modal" aria-labelledby="aboutTitle">
+		<div class="modal-content">
+			<button id="btn_aboutClose" class="modal-close" aria-label="About box schließen">✕</button>
+			<img src="/images/qt4z.png" alt="Quiztimer4Zoom Logo" class="about-logo" />
+			<h2 id="aboutTitle">Quiztimer4Zoom</h2>
+			<p class="about-version">Version 1.0</p>
+			<p class="about-description">Ein Countdown-Timer für DQV Onlinequizze mit anpassbarer Größe und Farben.</p>
+			<p class="about-footer">© 2025 fuzzy.monster</p>
 		</div>
+	</dialog>
 
-		<!-- Screen reader only text for better accessibility -->
-		<div class="sr-only" id="sr-announcements" aria-live="assertive" aria-atomic="true"></div>
-	</body>
+	<!-- Screen reader announcements: Accessibility region for dynamic status updates -->
+	<div class="sr-only" id="sr-announcements" aria-live="assertive" aria-atomic="true"></div>
+</body>
 </html>

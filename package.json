@@ -5,7 +5,13 @@
 	"type": "module",
 	"scripts": {
 		"dev": "node api/index.js",
-		"start": "node api/index.js"
+		"start": "node api/index.js",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:ui": "vitest --ui",
+		"test:backend": "vitest run --project backend",
+		"test:frontend": "vitest run --project frontend",
+		"coverage": "vitest run --coverage"
 	},
 	"keywords": [],
 	"author": "",
@@ -21,18 +27,28 @@
 		"dotenv": "^16.4.5",
 		"express": "^4.20.0",
 		"express-rate-limit": "^8.1.0",
-		"expressjs": "^1.0.1",
 		"helmet": "^8.1.0",
 		"kill-port": "^2.0.1",
 		"node-localstorage": "^3.0.5",
-		"path": "^0.12.7",
 		"vanilla-colorful": "^0.7.2",
 		"vanilla-picker": "^2.12.3",
-		"vercel": "^41.6.2",
+		"vercel": "^41.7.8",
 		"vite": "^5.4.3",
 		"vite-plugin-static-copy": "^1.0.6"
 	},
 	"devDependencies": {
-		"vite-plugin-minify": "^2.1.0"
+		"@vitest/coverage-v8": "^2.1.9",
+		"@vitest/ui": "^2.1.9",
+		"jsdom": "^25.0.1",
+		"msw": "^2.14.6",
+		"supertest": "^7.2.2",
+		"vite-plugin-minify": "^2.1.0",
+		"vitest": "^2.1.9"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"msw"
+		]
 	}
 }

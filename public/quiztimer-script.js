@@ -1,25 +1,122 @@
+/**
+ * @fileoverview Quiztimer4Zoom - A countdown timer for Zoom meetings with customizable appearance and animations.
+ * This script manages timer state, rendering to canvas, Zoom SDK integration, and user interactions.
+ */
+
 // --------------------------------------------------------------------------------
-// load options from local storage or set defaults
+// Load options from local storage or set defaults
 // --------------------------------------------------------------------------------
+
+/** @type {string} Timer position on screen (posTopLeft, posTopRight, posBottomLeft, posBottomRight) */
 const position = JSON.parse(localStorage.getItem('position')) || 'posTopLeft';
+
+/** @type {number} Size of the timer display box in pixels */
 const boxSize = JSON.parse(localStorage.getItem('boxSize')) || 300;
+
+/** @type {{number: string, background: string}} Standard state colors */
 const colorsStandard = JSON.parse(localStorage.getItem('colorsStandard')) || {
 	number: '#000000',
 	background: '#ffffff',
 };
+
+/** @type {{number: string, background: string}} Warning state colors (when time <= 5 seconds) */
 const colorsWarning = JSON.parse(localStorage.getItem('colorsWarning')) || {
 	number: '#000000',
 	background: '#ffff00',
 };
+
+/** @type {{number: string, background: string}} Timeout state colors (when time = 0) */
 const colorsTimeout = JSON.parse(localStorage.getItem('colorsTimeout')) || {
 	number: '#000000',
 	background: '#ff0000',
 };
+
+/** @type {number} Text X position offset */
 const textX = JSON.parse(localStorage.getItem('textX')) || 0;
+
+/** @type {number} Text Y position offset */
 const textY = JSON.parse(localStorage.getItem('textY')) || 0;
+
+/** @type {number} Timer Y position on video canvas */
 const y = JSON.parse(localStorage.getItem('y')) || 0;
+
+/** @type {number} Timer X position on video canvas */
 const x = JSON.parse(localStorage.getItem('x')) || 0;
 
+/** @type {number} Background transparency percentage (0-100) */
+const backgroundTransparency = JSON.parse(localStorage.getItem('backgroundTransparency')) || 0;
+
+/** @type {number} Number transparency percentage (0-100) */
+const numberTransparency = JSON.parse(localStorage.getItem('numberTransparency')) || 0;
+
+/** @type {number} Height of the segmented progress blocks in pixels */
+const BLOCK_HEIGHT = 8;
+
+/** @type {number} Vertical gap between the number and the segmented blocks */
+const BLOCK_MARGIN = 8;
+
+/** @type {number} Padding between the segmented blocks and the bottom canvas edge */
+const BLOCK_BOTTOM_PADDING = 6;
+
+/**
+ * Total vertical space the segmented blocks occupy, or 0 when they are disabled.
+ *
+ * @returns {number} Reserved height in pixels
+ */
+function segmentedBlocksHeight() {
+	return quiztimerOptions.segmentedBlocks ? BLOCK_HEIGHT + BLOCK_MARGIN + BLOCK_BOTTOM_PADDING : 0;
+}
+
+/**
+ * Converts a transparency percentage into a canvas alpha value.
+ * The sliders express transparency (0% = fully opaque, 100% = fully transparent),
+ * while canvas/rgba needs the inverse (opacity).
+ *
+ * @param {number} transparency - Transparency percentage (0-100)
+ * @returns {number} Alpha value 0-1
+ */
+function transparencyToAlpha(transparency) {
+	return (100 - transparency) / 100;
+}
+
+/** @type {boolean} Enable flash animation on state transitions */
+const flashAnimation = JSON.parse(localStorage.getItem('flashAnimation')) !== false; // Default to true
+
+/** @type {boolean} Enable pulse animation on time changes */
+const pulseAnimation = JSON.parse(localStorage.getItem('pulseAnimation')) !== false; // Default to true
+
+/** @type {boolean} Enable shake animation on timeout */
+const shakeAnimation = JSON.parse(localStorage.getItem('shakeAnimation')) !== false; // Default to true
+
+/** @type {boolean} Enable segmented countdown blocks */
+const segmentedBlocks = JSON.parse(localStorage.getItem('segmentedBlocks')) === true; // Default to false
+
+/** @type {number} Seconds per segment block */
+const segmentSize = JSON.parse(localStorage.getItem('segmentSize')) || 5;
+
+/** @type {boolean} Enable blinking animation at timeout */
+const blinkAnimation = JSON.parse(localStorage.getItem('blinkAnimation')) !== false; // Default to true
+
+/**
+ * @typedef {Object} QuiztimerOptions
+ * @property {string} position - Timer position on screen
+ * @property {number} boxSize - Size of timer box in pixels
+ * @property {{number: string, background: string}} colorsStandard - Standard state colors
+ * @property {{number: string, background: string}} colorsWarning - Warning state colors
+ * @property {{number: string, background: string}} colorsTimeout - Timeout state colors
+ * @property {number} textX - Text X position offset
+ * @property {number} textY - Text Y position offset
+ * @property {number} y - Y position on video canvas
+ * @property {number} x - X position on video canvas
+ * @property {number} backgroundTransparency - Background transparency (0-100)
+ * @property {number} numberTransparency - Number transparency (0-100)
+ * @property {boolean} flashAnimation - Enable flash animation
+ * @property {boolean} pulseAnimation - Enable pulse animation
+ * @property {boolean} shakeAnimation - Enable shake animation
+ * @property {boolean} segmentedBlocks - Enable segmented countdown blocks
+ * @property {number} segmentSize - Seconds per segment block
+ * @property {boolean} blinkAnimation - Enable blinking animation at timeout
+ */
 const quiztimerOptions = {
 	position,
 	boxSize,
@@ -30,42 +127,105 @@ const quiztimerOptions = {
 	textY,
 	y,
 	x,
+	backgroundTransparency,
+	numberTransparency,
+	flashAnimation,
+	pulseAnimation,
+	shakeAnimation,
+	segmentedBlocks,
+	segmentSize,
+	blinkAnimation,
 };
-console.log('🚀 ~ quiztimerOptions:', quiztimerOptions);
 
-let isInitializing = true;
+/** @type {{height: number, width: number}} Zoom video dimensions */
 let videoSize;
 
+/**
+ * Main initialization function that runs when the DOM is fully loaded.
+ * Sets up timer state, UI elements, and Zoom SDK integration.
+ */
 document.onreadystatechange = async () => {
 	if (document.readyState === 'complete') {
+		/** @type {number} Z-index for layering timer on video */
 		let zIndex;
+
+		/** @type {string} ID of the previous image drawn on Zoom canvas */
 		let prevImageId = '0';
 
+		/** @type {boolean} Whether a Zoom rendering context is currently active */
+		let renderingContextActive = false;
+
+		/** @type {boolean} Whether Zoom SDK event listeners have already been registered */
+		let listenersRegistered = false;
+
+		/** @type {Symbol} Timer stopped state */
 		const stop = Symbol('stop');
+
+		/** @type {Symbol} Timer running state */
 		const running = Symbol('running');
+
+		/** @type {Symbol} Current timer state */
 		let state = stop;
 
+		/** @type {number} Timer duration in seconds */
 		let duration = 20;
-		let timerId = 0;
+
+		/** @type {number} Seconds remaining on timer */
 		let timeLeft = 0;
+
+		/** @type {number} Interval ID for timed reset */
 		let timedResetId;
 
-		let posX = 10,
-			posY = 10; // where to draw the text
+		/** @type {number} X position where text is drawn */
+		let posX = 10;
 
-		// Cache for optimized redraws
+		/** @type {number} Y position where text is drawn */
+		let posY = 10;
+
+		/** @type {number|null} Last time value that was drawn */
 		let lastDrawnTime = null;
+
+		/** @type {string|null} Last color state ('standard', 'warning', 'timeout') */
 		let lastColorState = null;
+
+		/** @type {ImageData|null} Cached image data for optimized redraws */
 		let cachedImageData = null;
 
+		/** @type {HTMLButtonElement} Start/Stop button element */
 		const btnStartStop = document.getElementById('btn_startStop');
+
+		/** @type {HTMLButtonElement} Continue button element */
 		const btnContinue = document.getElementById('btn_continue');
 
 		// Disable continue button initially - only enable when countdown is stopped
 		btnContinue.disabled = true;
 
+		// Initialize dark mode from localStorage
+		const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+		if (savedDarkMode) {
+			document.body.classList.add('dark-mode');
+			const btnDarkmode = document.getElementById('btn_darkmode');
+			if (btnDarkmode) {
+				btnDarkmode.textContent = '☀️';
+			}
+			// Update about box logo
+			const aboutLogo = document.querySelector('.about-logo');
+			if (aboutLogo) {
+				aboutLogo.src = '/images/qt4z-dark.jpg';
+			}
+		}
+
 		// --------------------------------------------------------------------
 		const gui = initGui();
+
+		// Close the Zoom rendering context before the page unloads, so a reload
+		// doesn't collide with a still-open context from the previous page instance
+		// (Zoom's native client rejects a new runRenderingContext call otherwise
+		// with "The app already called render Js-api first").
+		window.addEventListener('pagehide', () => {
+			zoomSdk.closeRenderingContext().catch(() => {});
+		});
+
 		await initZoomSdk(gui);
 
 		// --------------------------------------------------------------------
@@ -87,8 +247,10 @@ document.onreadystatechange = async () => {
 		});
 		/**
 		 * Initializes the GUI by setting up the canvas and context, and adding event listeners for various actions.
-		 *
 		 * Actions include starting or stopping the timer, continuing the timer, and setting the duration to 20 or 30 seconds.
+		 * Also sets up tab navigation, color pickers, transparency sliders, and animation toggles.
+		 *
+		 * @returns {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} GUI object with canvas and context
 		 */
 		function initGui() {
 			const canvas = document.createElement('canvas');
@@ -158,8 +320,27 @@ document.onreadystatechange = async () => {
 					case 'btn_panic':
 						resetTimer(gui);
 						break;
-					case 'btn_help':
+					case 'btn_help': {
+						// Show about box
+						const aboutBox = document.getElementById('aboutBox');
+						aboutBox.showModal();
 						break;
+					}
+					case 'btn_darkmode': {
+						// Toggle dark mode
+						document.body.classList.toggle('dark-mode');
+						const isDarkMode = document.body.classList.contains('dark-mode');
+						localStorage.setItem('darkMode', isDarkMode);
+						// Update button icon
+						const btnDarkmode = document.getElementById('btn_darkmode');
+						btnDarkmode.textContent = isDarkMode ? '☀️' : '🌙';
+						// Update about box logo
+						const aboutLogo = document.querySelector('.about-logo');
+						if (aboutLogo) {
+							aboutLogo.src = isDarkMode ? '/images/qt4z-dark.jpg' : '/images/qt4z.png';
+						}
+						break;
+					}
 				}
 			});
 
@@ -167,18 +348,38 @@ document.onreadystatechange = async () => {
 			const tabButtons = document.querySelectorAll('.tab-button');
 			const tabPanels = document.querySelectorAll('.tab-panel');
 
-			tabButtons.forEach(button => {
+			for (const button of tabButtons) {
 				button.addEventListener('click', () => {
 					// Remove active state from all buttons
-					tabButtons.forEach(btn => btn.setAttribute('aria-selected', 'false'));
+					for (const btn of tabButtons) {
+						btn.setAttribute('aria-selected', 'false');
+					}
 					// Hide all panels
-					tabPanels.forEach(panel => panel.setAttribute('hidden', ''));
+					for (const panel of tabPanels) {
+						panel.setAttribute('hidden', '');
+					}
 					// Activate clicked button
 					button.setAttribute('aria-selected', 'true');
 					// Show corresponding panel
 					const panelId = button.getAttribute('aria-controls');
 					document.getElementById(panelId).removeAttribute('hidden');
 				});
+			}
+
+			// About box functionality
+			const aboutBox = document.getElementById('aboutBox');
+			const btnAboutClose = document.getElementById('btn_aboutClose');
+
+			btnAboutClose.addEventListener('click', () => {
+				aboutBox.close();
+			});
+
+			// Close dialog when clicking outside (on backdrop)
+			aboutBox.addEventListener('click', event => {
+				// Check if click was directly on the dialog (backdrop area)
+				if (event.target === aboutBox) {
+					aboutBox.close();
+				}
 			});
 
 			// add click listeners to corner positions
@@ -206,51 +407,146 @@ document.onreadystatechange = async () => {
 				}
 				if (value === undefined) return;
 				quiztimerOptions.boxSize = quiztimerOptions.boxSize + value;
-				// initCanvas(gui);
 				setPosition(quiztimerOptions.position, gui);
 				localStorage.setItem('boxSize', JSON.stringify(quiztimerOptions.boxSize));
 			});
+
+			// Add listeners for transparency sliders
+			const backgroundTransparencySlider = document.getElementById('backgroundTransparencySlider');
+			const numberTransparencySlider = document.getElementById('numberTransparencySlider');
+
+			if (backgroundTransparencySlider) {
+				backgroundTransparencySlider.addEventListener('input', event => {
+					quiztimerOptions.backgroundTransparency = Number.parseInt(event.target.value);
+					localStorage.setItem('backgroundTransparency', JSON.stringify(quiztimerOptions.backgroundTransparency));
+					invalidateCache();
+					if (!isDrawing) {
+						isDrawing = true;
+						drawImage(gui.canvas, gui.ctx, duration).then(() => {
+							isDrawing = false;
+						});
+					}
+				});
+			}
+
+			if (numberTransparencySlider) {
+				numberTransparencySlider.addEventListener('input', event => {
+					quiztimerOptions.numberTransparency = Number.parseInt(event.target.value);
+					localStorage.setItem('numberTransparency', JSON.stringify(quiztimerOptions.numberTransparency));
+					invalidateCache();
+					if (!isDrawing) {
+						isDrawing = true;
+						drawImage(gui.canvas, gui.ctx, duration).then(() => {
+							isDrawing = false;
+						});
+					}
+				});
+			}
+
+			// Add listener for flash animation toggle
+			const flashAnimationToggle = document.getElementById('flashAnimationToggle');
+			if (flashAnimationToggle) {
+				// Set initial state from options
+				flashAnimationToggle.checked = quiztimerOptions.flashAnimation;
+
+				flashAnimationToggle.addEventListener('change', event => {
+					quiztimerOptions.flashAnimation = event.target.checked;
+					localStorage.setItem('flashAnimation', JSON.stringify(quiztimerOptions.flashAnimation));
+				});
+			}
+
+			// Add listener for pulse animation toggle
+			const pulseAnimationToggle = document.getElementById('pulseAnimationToggle');
+			if (pulseAnimationToggle) {
+				// Set initial state from options
+				pulseAnimationToggle.checked = quiztimerOptions.pulseAnimation;
+
+				pulseAnimationToggle.addEventListener('change', event => {
+					quiztimerOptions.pulseAnimation = event.target.checked;
+					localStorage.setItem('pulseAnimation', JSON.stringify(quiztimerOptions.pulseAnimation));
+				});
+			}
+
+			// Add listener for shake animation toggle
+			const shakeAnimationToggle = document.getElementById('shakeAnimationToggle');
+			if (shakeAnimationToggle) {
+				// Set initial state from options
+				shakeAnimationToggle.checked = quiztimerOptions.shakeAnimation;
+
+				shakeAnimationToggle.addEventListener('change', event => {
+					quiztimerOptions.shakeAnimation = event.target.checked;
+					localStorage.setItem('shakeAnimation', JSON.stringify(quiztimerOptions.shakeAnimation));
+				});
+			}
+
+			// Add listener for blink animation toggle
+			const blinkAnimationToggle = document.getElementById('blinkAnimationToggle');
+			if (blinkAnimationToggle) {
+				// Set initial state from options
+				blinkAnimationToggle.checked = quiztimerOptions.blinkAnimation;
+
+				blinkAnimationToggle.addEventListener('change', event => {
+					quiztimerOptions.blinkAnimation = event.target.checked;
+					localStorage.setItem('blinkAnimation', JSON.stringify(quiztimerOptions.blinkAnimation));
+				});
+			}
+
+			// Add listener for segmented blocks toggle
+			const segmentedBlocksToggle = document.getElementById('segmentedBlocksToggle');
+			if (segmentedBlocksToggle) {
+				// Set initial state from options
+				segmentedBlocksToggle.checked = quiztimerOptions.segmentedBlocks;
+
+				segmentedBlocksToggle.addEventListener('change', event => {
+					quiztimerOptions.segmentedBlocks = event.target.checked;
+					localStorage.setItem('segmentedBlocks', JSON.stringify(quiztimerOptions.segmentedBlocks));
+					invalidateCache();
+					if (!isDrawing) {
+						isDrawing = true;
+						drawImage(gui.canvas, gui.ctx, duration).then(() => {
+							isDrawing = false;
+						});
+					}
+				});
+			}
 
 			return gui;
 		}
 
 		/**
-		 * Resets the timer to its initial state.
-		 * @param {Object} gui - The object containing the canvas and context.
+		 * Resets the timer to its initial state by clearing the canvas and reinitializing the Zoom SDK.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object containing canvas and context
 		 * @example
 		 * resetTimer(gui);
 		 */
-		//--------------------------------------------------------------------
-		/**
-		 * Reset the timer to its initial state by calling the clear function to reset the canvas and its context.
-		 *
-		 * @param {Object} gui - The GUI object used for the timer interface.
-		 */
 		function resetTimer(gui) {
-			// Reset the timer to its initial state
-			// Call clear to reset the canvas and its context
 			clear(gui);
 		}
-		//--------------------------------------------------------------------
 		/**
-		 * Updates the duration value and triggers the drawing of an image on the canvas.
+		 * Updates the timer duration and redraws the display with the new time.
 		 *
-		 * @param {Object} gui - The GUI object containing canvas and context properties.
-		 * @param {number} time - The new duration value to be set.
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 * @param {number} time - New duration value in seconds
 		 */
 		function setDuration(gui, time) {
 			duration = time;
-			drawImage(gui.canvas, gui.ctx, duration);
+			if (!isDrawing) {
+				isDrawing = true;
+				drawImage(gui.canvas, gui.ctx, duration).then(() => {
+					isDrawing = false;
+				});
+			}
 		}
-		//--------------------------------------------------------------------
 		/**
-		 * Sets the position based on the event target ID within the GUI.
+		 * Sets the timer position on the video canvas based on corner selection.
+		 * Updates x/y coordinates, invalidates cache, and redraws the timer.
 		 *
-		 * @param {Event} event - The event triggering the position change.
-		 * @param {Object} gui - The GUI object containing canvas and context information.
+		 * @param {string} position - Position identifier (posTopLeft, posTopRight, posBottomLeft, posBottomRight)
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 * @returns {Promise<void>}
 		 */
 		async function setPosition(position, gui) {
-			console.log('🚀 ~ setPosition ~ position:', position);
 			switch (position) {
 				case 'posTopLeft':
 					quiztimerOptions.x = 0;
@@ -272,19 +568,24 @@ document.onreadystatechange = async () => {
 			}
 			invalidateCache();
 			initCanvas(gui);
-			drawImage(gui.canvas, gui.ctx, duration);
+			if (!isDrawing) {
+				isDrawing = true;
+				await drawImage(gui.canvas, gui.ctx, duration);
+				isDrawing = false;
+			}
 			quiztimerOptions.position = position;
-			console.log('Saved position', quiztimerOptions.position);
 			localStorage.setItem('position', JSON.stringify(quiztimerOptions.position));
 			localStorage.setItem('x', JSON.stringify(quiztimerOptions.x));
 			localStorage.setItem('y', JSON.stringify(quiztimerOptions.y));
 		}
-		// --------------------------------------------------------------------
 		/**
-		 * Initializes the Zoom SDK with the given capabilities.
-		 * @param {Object} gui - The GUI object containing canvas and context information.
+		 * Initializes the Zoom SDK with required capabilities and sets up rendering context.
+		 * Configures video dimensions, runs rendering context on camera view, and adds event listeners.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 * @returns {Promise<void>}
 		 * @example
-		 * initZoomSdk(gui);
+		 * await initZoomSdk(gui);
 		 */
 		async function initZoomSdk(gui) {
 			// Initialize the Zoom SDK with the given capabilities
@@ -302,15 +603,19 @@ document.onreadystatechange = async () => {
 					'closeRenderingContext',
 					'onMyMediaChange',
 				],
-				onAuthorized: authResponse => {
-					console.log('Initial authorization complete');
+				onAuthorized: _authResponse => {
 				},
 			});
 
-			// Get the video size from the config result
-			let height = configResult.media.renderTarget.height;
-			let width = configResult.media.renderTarget.width;
-			videoSize = { height, width };
+			// Get the video size from the config result. Some clients/contexts
+			// return a config without media.renderTarget; bail out with a clear
+			// message instead of throwing deep inside initialization.
+			const renderTarget = configResult?.media?.renderTarget;
+			if (!renderTarget?.width || !renderTarget?.height) {
+				console.error('Zoom did not provide a camera render target; timer overlay unavailable.', configResult?.runningContext);
+				return;
+			}
+			videoSize = { height: renderTarget.height, width: renderTarget.width };
 
 			// Run the rendering context with the given view
 			zoomSdk
@@ -318,130 +623,99 @@ document.onreadystatechange = async () => {
 					view: 'camera',
 				})
 				.then(async () => {
+					renderingContextActive = true;
 					// Get the current running context
 					await zoomSdk.getRunningContext();
 					// Initialize the timer
 					initCanvas(gui);
-					addEventListeners(gui);
-					isInitializing = false;
+					if (!listenersRegistered) {
+						addEventListeners(gui);
+						listenersRegistered = true;
+					}
 				})
 				.catch(async error => {
 					// Log the error
-					console.log('Error:', error);
+					console.error('Zoom rendering context error:', error);
 				});
 		} // initZoomSdk
 
+		/**
+		 * Registers Zoom SDK event listeners for app visibility, popout, and media changes.
+		 * Handles video on/off state by closing or reinitializing the rendering context.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 */
 		function addEventListeners(gui) {
-			// Set an event listener for the app visibility change event
-			zoomSdk.addEventListener('onAppVisibilityChange', event => {
-				console.log('onAppVisibilityChange', event);
-			});
-
-			// Set an event listener for the app popout event
-			zoomSdk.addEventListener('onAppPopout', event => {
-				console.log(event);
-			});
-
-			// Set an event listener for the app popout event
-			zoomSdk.addEventListener('onAppVisibilityChange', event => {
-				console.log('onAppVisibilityChange', event);
-			});
-
-			// Set an event listener for the myMediaChange event
-			// and debounce it
+			// Close the rendering context when the user's camera goes off, and
+			// re-establish it when the camera comes back on.
 			zoomSdk.addEventListener('onMyMediaChange', event => {
-				if (event.media.video.state === false) {
+				const videoOn = event?.media?.video?.state;
+				if (videoOn === false) {
+					if (!renderingContextActive) return;
 					zoomSdk
 						.closeRenderingContext()
 						.then(() => {
-							console.log('closeRenderingContext returned');
+							renderingContextActive = false;
 						})
-						.catch(e => {
-							console.log(e);
+						.catch(error => {
+							console.error('Error closing rendering context:', error);
 						});
-				} else {
+				} else if (videoOn && !renderingContextActive) {
 					initZoomSdk(gui);
-					initCanvas(gui);
 				}
 			});
 		} // addEventListeners
 
-		// ----------------------------------------------------------------------------------------------------
-		function getColors(time) {
-			let bgColor = `${quiztimerOptions.backgroundStandard}`;
-			let fgColor = quiztimerOptions.numberStandard;
-			if (time <= 5) {
-				fgColor = quiztimerOptions.numberWarning;
-				bgColor = `${quiztimerOptions.backgroundWarning}`;
-			}
-			if (time === 0) {
-				fgColor = quiztimerOptions.numberTimeout;
-				bgColor = `${quiztimerOptions.backgroundTimeout}`;
-			}
-			return { fgColor, bgColor };
-		}
-
-		// ----------------------------------------------------------------------------------------------------
-		function calcFontsize(fontFamily) {
-			// create virtual canvas
+		/**
+		 * Calculates the optimal font size to fit "88" within the canvas width.
+		 * Uses binary search to find the largest font size that fits with padding.
+		 * Returns position and sizing information for text rendering.
+		 *
+		 * @param {string} fontFamily - Font family name to use for calculation
+		 * @returns {[number, number, number, number, number]} Array containing [x, y, fontSize, canvasWidth, canvasHeight]
+		 */
+		function calcFontSize(fontFamily) {
+			// Create virtual canvas for calculations
 			const virtualCanvas = document.createElement('canvas');
 			const virtualCtx = virtualCanvas.getContext('2d');
 			virtualCanvas.width = quiztimerOptions.boxSize;
-			virtualCanvas.height = quiztimerOptions.boxSize;
 
 			const text = '88';
 			const paddingPercent = 5; // Padding as percentage of text size
-			const cornerRadius = 15; // Radius for rounded corners
-
-			// Set initial font to measure
-			virtualCtx.font = `bold 10px ${fontFamily}`;
-
-			// Measure the text
-			const metrics = virtualCtx.measureText(text);
-			const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-			// Set canvas width and adjust height to match text height
-			// canvas.width = canvasWidth;
-			virtualCanvas.height = textHeight + ((textHeight * paddingPercent) / 100) * 2;
-
-			// Clear the virtualCanvas
-			virtualCtx.clearRect(0, 0, virtualCanvas.width, virtualCanvas.height);
-
-			// Apply rounded corners to virtualCanvas element via CSS
-			virtualCanvas.style.borderRadius = `${cornerRadius}px`;
 
 			// Binary search to find largest possible font size that fits the width
 			let minSize = 10;
 			let maxSize = 1000;
-			let bestFontSize = 0;
+			let bestFontSize = minSize;
 
 			while (maxSize - minSize > 1) {
 				bestFontSize = Math.floor((minSize + maxSize) / 2);
 				virtualCtx.font = `bold ${bestFontSize}px ${fontFamily}`;
 
-				const newMetrics = virtualCtx.measureText(text);
-				const newTextWidth = newMetrics.width;
-				const newTextHeight = newMetrics.actualBoundingBoxAscent + newMetrics.actualBoundingBoxDescent;
-				const padding = (newTextHeight * paddingPercent) / 100;
+				const metrics = virtualCtx.measureText(text);
+				const textWidth = metrics.width;
+				const textHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+				const padding = (textHeight * paddingPercent) / 100;
 
-				if (newTextWidth + padding * 2 <= virtualCanvas.width) {
+				if (textWidth + padding * 2 <= virtualCanvas.width) {
 					minSize = bestFontSize;
 				} else {
 					maxSize = bestFontSize;
 				}
 			}
 
-			// Use the found size
+			// Use the found size and get final measurements
 			bestFontSize = minSize;
-			virtualCtx.font = `bold  ${bestFontSize}px ${fontFamily}`;
+			virtualCtx.font = `bold ${bestFontSize}px ${fontFamily}`;
 
-			// Measure the text with final font size
 			const finalMetrics = virtualCtx.measureText(text);
 			const finalTextWidth = finalMetrics.width;
 			const finalTextHeight = finalMetrics.actualBoundingBoxAscent + finalMetrics.actualBoundingBoxDescent;
 			const padding = (finalTextHeight * paddingPercent) / 100;
 
-			// Resize virtualCanvas height to match the text height with the new font size
-			virtualCanvas.height = finalTextHeight + padding * 2;
+			// Set final canvas height, reserving room below the number for the
+			// segmented progress blocks so they don't overlap the digits
+			virtualCanvas.height = finalTextHeight + padding * 2 + segmentedBlocksHeight();
 
 			// Calculate position to center text horizontally
 			const x = (virtualCanvas.width - finalTextWidth) / 2;
@@ -449,52 +723,100 @@ document.onreadystatechange = async () => {
 
 			return [x, y, bestFontSize, virtualCanvas.width, virtualCanvas.height];
 		}
-		// ----------------------------------------------------------------------------------------------------
+		/**
+		 * Initializes the canvas with proper dimensions, font settings, and initial timer display.
+		 * Calculates font size, sets canvas dimensions, applies text styles, and draws initial time.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 */
 		function initCanvas(gui) {
-			// Set text properties
+			// Calculate optimal font size and positioning
 			const fontFamily = 'Arial';
-			let [x, y, bestFontSize, canvasWidth, canvasHeight] = calcFontsize(fontFamily);
+			const [x, y, bestFontSize, canvasWidth, canvasHeight] = calcFontSize(fontFamily);
+
+			// Update global position variables
 			posX = x;
 			posY = y;
+
+			// Set canvas dimensions
 			gui.canvas.height = canvasHeight;
 			gui.canvas.width = canvasWidth;
 
-			const { fgColor, bgColor } = getColors(20);
+			// Reset font after canvas resize (canvas resize clears font settings)
+			gui.ctx.font = `bold ${bestFontSize}px ${fontFamily}`;
 
-			// ####
-			// Reset font after canvas resize (canvas reset clears font settings)
-			gui.ctx.font = `bold  ${bestFontSize}px ${fontFamily}`;
-
-			// Set text style
-			gui.ctx.fillStyle = bgColor;
-			gui.ctx.textAlign = 'left';
-			gui.ctx.textBaseline = 'alphabetic';
-
+			// Invalidate cache and draw initial time
 			invalidateCache();
-			drawImage(gui.canvas, gui.ctx, 20);
+			drawImage(gui.canvas, gui.ctx, duration);
 		}
-
-		// ----------------------------------------------------------------------------------------------------
 
 		/**
-		 * Clears the current timer state and reinitializes the Zoom SDK.
-		 * @param {Object} gui - The GUI object containing canvas and context information.
+		 * Resets the timer to initial state and reinitializes the Zoom SDK rendering context.
+		 * Clears all active timers, resets UI state, and closes/reopens the rendering context.
+		 * This is a full reset that restarts the entire timer system.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
 		 */
 		function clear(gui) {
-			// Reset the time left to the initial duration
-			timeLeft = duration;
+			// Clear all active timers
+			if (timerTimeoutId) {
+				clearTimeout(timerTimeoutId);
+				timerTimeoutId = null;
+			}
+			if (timedResetId) {
+				clearInterval(timedResetId);
+				timedResetId = null;
+			}
 
-			// Close the current rendering context and reinitialize the Zoom SDK
-			zoomSdk.closeRenderingContext().then(() => {
-				initZoomSdk(gui);
-			});
+			// Reset timer state
+			state = stop;
+			timeLeft = duration;
+			isDrawing = false;
+
+			// Reset UI state
+			btnStartStop.innerText = 'Start';
+			btnContinue.disabled = true;
+			btnContinue.classList.remove('active');
+
+			const progressFill = btnContinue.querySelector('.progress-fill');
+			if (progressFill) {
+				progressFill.style.width = '0%';
+			}
+
+			// Invalidate cache to force fresh draw
+			invalidateCache();
+
+			// Close and reinitialize the Zoom rendering context
+			zoomSdk
+				.closeRenderingContext()
+				.then(() => {
+					renderingContextActive = false;
+					initZoomSdk(gui);
+				})
+				.catch(error => {
+					console.error('Error closing rendering context:', error);
+					// Attempt to reinitialize anyway
+					renderingContextActive = false;
+					initZoomSdk(gui);
+				});
 		}
-		// --------------------------------------------------------------------
+		/**
+		 * Recalculates the X position to center text when time changes from double to single digit.
+		 *
+		 * @param {number} time - Current time value
+		 */
 		function recalcPosX(time) {
 			const width = gui.ctx.measureText(time - 1).width;
 			posX = (gui.canvas.width - width) / 2;
 		}
-		// --------------------------------------------------------------------
+
+		/**
+		 * Starts the timer from the current duration value.
+		 * Clears any pending timed reset, updates button states, and begins countdown.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 * @returns {Promise<void>}
+		 */
 		async function startTimer(gui) {
 			if (timedResetId) clearInterval(timedResetId); // User restarts timer before automatic reset is complete -> clear autommatic reset
 
@@ -502,17 +824,17 @@ document.onreadystatechange = async () => {
 			btnStartStop.innerText = 'Stop';
 
 			btnContinue.disabled = true;
-			timeLeft = duration;
 			const progressFill = btnContinue.querySelector('.progress-fill');
 			progressFill.style.width = '0%';
 			btnContinue.classList.remove('active');
 
-			runTimer(timeLeft, gui);
+			runTimer(duration, gui);
 		}
-		// --------------------------------------------------------------------
 		/**
-		 * Stops the timer and resets the interface.
-		 * @param {Object} gui - The GUI object containing canvas and context information.
+		 * Stops the timer and enables the continue button.
+		 * Clears the running timeout, updates UI state, and starts timed reset countdown.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
 		 */
 		function stopTimer(gui) {
 			// Set the state to stop
@@ -521,8 +843,10 @@ document.onreadystatechange = async () => {
 			// Enable the continue button during countdown
 			btnContinue.disabled = false;
 
-			// Clear the interval to stop the timer
-			clearInterval(timerId);
+			// Clear the timeout to stop the timer
+			if (timerTimeoutId) {
+				clearTimeout(timerTimeoutId);
+			}
 
 			// Update the button text to "Start"
 			btnStartStop.innerText = 'Start';
@@ -533,10 +857,11 @@ document.onreadystatechange = async () => {
 			// Reset the timer after a delay
 			timedReset(gui);
 		}
-		// --------------------------------------------------------------------
 		/**
-		 * Continues the timer with the remaining time.
-		 * @param {Object} gui - The GUI object containing canvas and context information.
+		 * Continues the timer from the paused state with remaining time.
+		 * Resumes countdown, updates button states, and clears timed reset.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
 		 */
 		function continueTimer(gui) {
 			// Set the state to running
@@ -559,10 +884,14 @@ document.onreadystatechange = async () => {
 			// Start the timer with the remaining time
 			runTimer(timeLeft, gui);
 		}
-		// --------------------------------------------------------------------
+		/**
+		 * Initiates a 5-second countdown before automatically resetting the timer.
+		 * Shows progress bar animation on the continue button during countdown.
+		 * If countdown completes, disables continue button and redraws timer at full duration.
+		 *
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 */
 		function timedReset(gui) {
-			const timeout = 5000;
-
 			const progressFill = btnContinue.querySelector('.progress-fill');
 			progressFill.style.width = '100%';
 			let width = 100;
@@ -579,37 +908,144 @@ document.onreadystatechange = async () => {
 				}
 			}, 50);
 		}
-		// --------------------------------------------------------------------
+		/** @type {boolean} Flag to prevent concurrent drawImage calls */
+		let isDrawing = false;
+
+		/** @type {number|null} Performance timestamp when timer started */
+		let timerStartTime = null;
+
+		/** @type {number|null} Timeout ID for timer update scheduling */
+		let timerTimeoutId = null;
+
+		/** @type {number|null} Last time value that was displayed */
+		let lastDisplayedTime = null;
+
+		/** @type {boolean} Flag to track if blinking animation has been triggered */
+		let blinkingTriggered = false;
+
+		/**
+		 * Runs the timer countdown from the specified duration.
+		 * Uses performance.now() for accurate timing independent of execution delays.
+		 * Schedules updates every 50ms and triggers animations on time changes.
+		 *
+		 * @param {number} duration - Starting duration in seconds
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 */
 		function runTimer(duration, gui) {
 			timeLeft = duration;
+			timerStartTime = performance.now(); // Record start time once
+			lastDisplayedTime = duration;
+			blinkingTriggered = false; // Reset blink flag
 
-			drawImage(gui.canvas, gui.ctx, timeLeft);
-			timeLeft--;
+			// Initial draw with async handling
+			isDrawing = true;
+			drawImage(gui.canvas, gui.ctx, timeLeft).then(() => {
+				isDrawing = false;
+			});
 
-			timerId = setInterval(() => {
-				drawImage(gui.canvas, gui.ctx, timeLeft);
-
-				timeLeft--;
-				if (timeLeft % 10 === 9) {
-					recalcPosX(timeLeft);
-				}
-				if (timeLeft < 0) {
-					clearInterval(timerId);
-					btnStartStop.innerText = 'Start';
-					state = stop;
-					timedReset(gui);
-				}
-			}, 1000);
+			// Start the timing loop
+			scheduleTimerUpdate(duration, gui);
 		}
 
-		// Helper function to determine current color state
+		/**
+		 * Schedules the next timer update check using setTimeout.
+		 * Calculates elapsed time and updates display only when time value changes.
+		 * Continues scheduling updates until timer reaches 0, then stops and resets.
+		 *
+		 * @param {number} duration - Original starting duration in seconds
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 */
+		function scheduleTimerUpdate(duration, gui) {
+			timerTimeoutId = setTimeout(() => {
+				const elapsedMs = performance.now() - timerStartTime;
+
+				// Calculate the current time based on actual elapsed time, not setInterval ticks
+				// This makes the timer independent of execution delays
+				const newTimeLeft = Math.round(duration - elapsedMs / 1000);
+
+				// Only update display if the time value has changed
+				if (newTimeLeft !== lastDisplayedTime) {
+					timeLeft = newTimeLeft;
+					lastDisplayedTime = newTimeLeft;
+
+					if (timeLeft % 10 === 9) {
+						recalcPosX(timeLeft);
+					}
+
+					// Draw the new time with animations (if enabled)
+					if (!isDrawing) {
+						isDrawing = true;
+						drawImage(
+							gui.canvas,
+							gui.ctx,
+							timeLeft,
+							quiztimerOptions.flashAnimation,
+							quiztimerOptions.pulseAnimation,
+							quiztimerOptions.shakeAnimation
+						).then(() => {
+							isDrawing = false;
+						});
+					}
+				}
+
+				// Check if timer should stop
+				if (timeLeft <= 0) {
+					btnStartStop.innerText = 'Start';
+					state = stop;
+
+					// Trigger blinking animation if enabled and not already triggered
+					if (quiztimerOptions.blinkAnimation && !blinkingTriggered && !isDrawing) {
+						blinkingTriggered = true;
+						isDrawing = true;
+
+						// Prepare animation options
+						const animOptions = {
+							backgroundTransparency: quiztimerOptions.backgroundTransparency,
+							numberTransparency: quiztimerOptions.numberTransparency,
+							posX,
+							posY,
+							x: quiztimerOptions.x,
+							y: quiztimerOptions.y,
+							zoomSdk,
+							zIndex,
+							prevImageId,
+							getColorState,
+							getColorsForState,
+						};
+
+						Animations.blinkAtTimeout(gui.canvas, gui.ctx, 0, animOptions).then(() => {
+							prevImageId = animOptions.prevImageId;
+							isDrawing = false;
+							timedReset(gui);
+						});
+					} else {
+						timedReset(gui);
+					}
+				} else {
+					// Schedule the next update check (check more frequently to catch all changes)
+					scheduleTimerUpdate(duration, gui);
+				}
+			}, 50); // Check every 50ms to catch time changes
+		}
+
+		/**
+		 * Determines the current color state based on time remaining.
+		 *
+		 * @param {number} time - Seconds remaining
+		 * @returns {'standard'|'warning'|'timeout'} Color state identifier
+		 */
 		function getColorState(time) {
 			if (time === 0) return 'timeout';
 			if (time <= 5) return 'warning';
 			return 'standard';
 		}
 
-		// Helper function to get colors for a given state
+		/**
+		 * Retrieves the color configuration for a given state.
+		 *
+		 * @param {'standard'|'warning'|'timeout'} state - Color state identifier
+		 * @returns {{number: string, background: string}} Color configuration object
+		 */
 		function getColorsForState(state) {
 			const stateMap = {
 				standard: quiztimerOptions.colorsStandard,
@@ -619,55 +1055,224 @@ document.onreadystatechange = async () => {
 			return stateMap[state];
 		}
 
-		// Helper function to invalidate the render cache when colors or layout change
+		/**
+		 * Invalidates the render cache when colors or layout change.
+		 * Forces a full redraw on the next drawImage call.
+		 */
 		function invalidateCache() {
 			lastDrawnTime = null;
 			lastColorState = null;
 			cachedImageData = null;
 		}
 
-		// Optimized drawImage with caching to reduce SDK calls
-		async function drawImage(canvas, ctx, time) {
+		/**
+		 * Converts a hex color to rgba format with specified alpha transparency.
+		 *
+		 * @param {string} hex - Hex color code (e.g., '#FF0000')
+		 * @param {number} alpha - Alpha value from 0 (transparent) to 1 (opaque)
+		 * @returns {string} RGBA color string (e.g., 'rgba(255, 0, 0, 0.5)')
+		 */
+		function hexToRgba(hex, alpha) {
+			const r = Number.parseInt(hex.slice(1, 3), 16);
+			const g = Number.parseInt(hex.slice(3, 5), 16);
+			const b = Number.parseInt(hex.slice(5, 7), 16);
+			return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+		}
+
+		/**
+		 * Draws segmented blocks below the timer number to visualize countdown progress.
+		 * Breaks the total duration into blocks (e.g., 20 seconds = 4 blocks of 5).
+		 * Filled blocks represent time remaining, empty blocks represent time elapsed.
+		 *
+		 * @param {CanvasRenderingContext2D} ctx - Canvas 2D rendering context
+		 * @param {number} time - Current time remaining in seconds
+		 * @param {number} totalDuration - Total duration of timer in seconds
+		 * @param {number} canvasWidth - Width of the canvas
+		 * @param {number} canvasHeight - Height of the canvas
+		 * @param {string} fgColor - Foreground color (for filled blocks)
+		 * @param {string} _bgColor - Background color (for empty blocks)
+		 */
+		function drawSegmentedBlocks(ctx, time, totalDuration, canvasWidth, canvasHeight, fgColor, _bgColor) {
+			if (!quiztimerOptions.segmentedBlocks) return;
+
+			const segmentSize = quiztimerOptions.segmentSize;
+			const totalBlocks = Math.ceil(totalDuration / segmentSize);
+			const filledBlocks = Math.ceil(time / segmentSize);
+
+			// Block dimensions
+			const blockHeight = BLOCK_HEIGHT;
+			const blockGap = 4;
+			const totalBlockWidth = canvasWidth * 0.8; // Use 80% of canvas width
+			const blockWidth = (totalBlockWidth - (totalBlocks - 1) * blockGap) / totalBlocks;
+
+			// Skip drawing when there are so many blocks they'd collapse to slivers
+			if (blockWidth < 1) return;
+
+			// Position blocks in the space reserved below the number,
+			// inset from the bottom edge so they don't sit flush against it
+			const blockY = canvasHeight - blockHeight - BLOCK_BOTTOM_PADDING;
+			const startX = (canvasWidth - totalBlockWidth) / 2;
+
+			// Draw each block
+			for (let i = 0; i < totalBlocks; i++) {
+				const blockX = startX + i * (blockWidth + blockGap);
+				const isFilled = i < filledBlocks;
+
+				// Set color based on filled state
+				if (isFilled) {
+					const fgAlpha = transparencyToAlpha(quiztimerOptions.numberTransparency);
+					ctx.fillStyle = hexToRgba(fgColor, fgAlpha);
+				} else {
+					const bgAlpha = Math.max(0.3, transparencyToAlpha(quiztimerOptions.backgroundTransparency));
+					ctx.fillStyle = hexToRgba(fgColor, bgAlpha * 0.3); // Dimmed version of fg color
+				}
+
+				// Draw block with rounded corners (fallback to fillRect if roundRect not available)
+				if (typeof ctx.roundRect === 'function') {
+					ctx.beginPath();
+					ctx.roundRect(blockX, blockY, blockWidth, blockHeight, 2);
+					ctx.fill();
+				} else {
+					// Fallback to regular rectangle
+					ctx.fillRect(blockX, blockY, blockWidth, blockHeight);
+				}
+			}
+		}
+
+		/**
+		 * Draws the timer display on the canvas and sends it to Zoom SDK.
+		 * Optimized with caching to reduce unnecessary SDK calls.
+		 * Handles state transitions with optional animations (flash, pulse, shake).
+		 * Applies transparency settings and manages image replacement on Zoom canvas.
+		 *
+		 * @param {HTMLCanvasElement} canvas - Canvas element to draw on
+		 * @param {CanvasRenderingContext2D} ctx - Canvas 2D rendering context
+		 * @param {number} time - Time value to display
+		 * @param {boolean} [enableFlash=false] - Enable flash animation on state transitions
+		 * @param {boolean} [enablePulse=false] - Enable pulse animation on time changes
+		 * @param {boolean} [enableShake=false] - Enable shake animation on timeout
+		 * @returns {Promise<void>}
+		 */
+		async function drawImage(canvas, ctx, time, enableFlash = false, enablePulse = false, enableShake = false) {
 			// Determine if visual content has changed
 			const currentColorState = getColorState(time);
 			const contentChanged = lastDrawnTime !== time || lastColorState !== currentColorState;
 
-			// Skip canvas redraw if nothing visual changed
-			if (contentChanged) {
-				const colors = getColorsForState(currentColorState);
-				const fgColor = colors.number;
-				const bgColor = `${colors.background}`;
+			// Skip SDK call entirely if nothing visual changed
+			if (!contentChanged) {
+				return; // Don't call SDK if visual content is identical
+			}
 
-				// Redraw canvas only when needed
-				ctx.fillStyle = bgColor;
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
-				ctx.fillStyle = fgColor;
-				ctx.fillText(time, posX, posY);
+			const colors = getColorsForState(currentColorState);
+			const fgColor = colors.number;
+			const bgColor = `${colors.background}`;
 
-				// Cache the image data
-				cachedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			// Detect state transition (not just time change)
+			const stateChanged = lastColorState !== null && lastColorState !== currentColorState;
+			const timeChanged = lastDrawnTime !== time && !stateChanged;
+			const enteringTimeout = stateChanged && currentColorState === 'timeout';
+
+			// Prepare animation options
+			const animOptions = {
+				backgroundTransparency: quiztimerOptions.backgroundTransparency,
+				numberTransparency: quiztimerOptions.numberTransparency,
+				posX,
+				posY,
+				x: quiztimerOptions.x,
+				y: quiztimerOptions.y,
+				zoomSdk,
+				zIndex,
+				prevImageId,
+				lastDrawnTime,
+				lastColorState,
+				getColorState,
+				getColorsForState,
+			};
+
+			// If entering timeout state and shake is enabled, play shake animation
+			if (enteringTimeout && enableShake) {
+				await Animations.shakeTransition(canvas, ctx, time, animOptions);
+				prevImageId = animOptions.prevImageId;
+				lastDrawnTime = animOptions.lastDrawnTime;
+				lastColorState = animOptions.lastColorState;
+				return;
+			}
+
+			// If state changed and flash is enabled, play flash animation
+			if (stateChanged && enableFlash) {
+				await Animations.flashTransition(canvas, ctx, time, bgColor, fgColor, animOptions);
+				prevImageId = animOptions.prevImageId;
 				lastDrawnTime = time;
 				lastColorState = currentColorState;
+				return;
 			}
+
+			// If only time changed and pulse is enabled, play pulse animation
+			if (timeChanged && enablePulse) {
+				await Animations.pulseTransition(canvas, ctx, time, animOptions);
+				prevImageId = animOptions.prevImageId;
+				lastDrawnTime = animOptions.lastDrawnTime;
+				lastColorState = animOptions.lastColorState;
+				return;
+			}
+
+			// Apply transparency: convert hex to rgba with alpha
+			// 0% = fully transparent, 100% = fully opaque
+			const bgAlpha = transparencyToAlpha(quiztimerOptions.backgroundTransparency);
+			const fgAlpha = transparencyToAlpha(quiztimerOptions.numberTransparency);
+			const bgColorWithAlpha = hexToRgba(bgColor, bgAlpha);
+			const fgColorWithAlpha = hexToRgba(fgColor, fgAlpha);
+
+			// Clear canvas to transparent before drawing
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+			// Redraw canvas
+			ctx.fillStyle = bgColorWithAlpha;
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+			// Draw text
+			ctx.fillStyle = fgColorWithAlpha;
+			ctx.fillText(time, posX, posY);
+
+			// Draw segmented blocks below the number
+			drawSegmentedBlocks(ctx, time, duration, canvas.width, canvas.height, fgColor, bgColor);
+
+			// Cache the image data
+			cachedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			lastDrawnTime = time;
+			lastColorState = currentColorState;
 
 			//---------------------------------------------------------------
-			zIndex++;
-
 			const x = quiztimerOptions.x;
 			const y = quiztimerOptions.y;
-			const start = performance.now();
-			let imageId = await zoomSdk.drawImage({
-				imageData: cachedImageData,
-				zIndex,
-				x,
-				y,
-			});
-			const end = performance.now();
-			// remove previous image
-			if (prevImageId !== '0') {
-				zoomSdk.clearImage(prevImageId);
+
+			// First time: create the image
+			if (prevImageId === '0') {
+				if (zIndex === undefined) {
+					zIndex = 1;
+				}
+				const drawResult = await zoomSdk.drawImage({
+					imageData: cachedImageData,
+					zIndex,
+					x,
+					y,
+				});
+				prevImageId = drawResult.imageId;
+			} else {
+				// For subsequent draws, just draw new image - SDK will handle replacing the old one
+				// Don't clear, just draw on top with the same zIndex
+				const drawResult = await zoomSdk.drawImage({
+					imageData: cachedImageData,
+					zIndex,
+					x,
+					y,
+				});
+
+				// Clear the old image after the new one is drawn and returned
+				zoomSdk.clearImage({ imageId: prevImageId }).catch(() => {}); // Fire and forget after new one is ready
+
+				prevImageId = drawResult.imageId;
 			}
-			prevImageId = imageId;
 		}
 
 		// ========================================================================================================
@@ -764,7 +1369,85 @@ document.onreadystatechange = async () => {
 			saveOption('colorsTimeout', quiztimerOptions.colorsTimeout, gui);
 		});
 
-		// --- save color Options
+		// --- Transparency Sliders -------------------------------------------------------
+		const backgroundTransparencySlider = document.getElementById('backgroundTransparencySlider');
+		const numberTransparencySlider = document.getElementById('numberTransparencySlider');
+
+		// Set initial values
+		backgroundTransparencySlider.value = quiztimerOptions.backgroundTransparency;
+		numberTransparencySlider.value = quiztimerOptions.numberTransparency;
+
+		// Update examples when background transparency changes
+		backgroundTransparencySlider.addEventListener('input', e => {
+			const alphaValue = Number.parseInt(e.target.value);
+			quiztimerOptions.backgroundTransparency = alphaValue;
+			invalidateCache();
+			updateExampleTransparency();
+			// Update the timer display in the video immediately
+			if (!isDrawing && state === stop) {
+				isDrawing = true;
+				drawImage(gui.canvas, gui.ctx, duration).then(() => {
+					isDrawing = false;
+				});
+			}
+		});
+
+		backgroundTransparencySlider.addEventListener('change', _e => {
+			localStorage.setItem('backgroundTransparency', JSON.stringify(quiztimerOptions.backgroundTransparency));
+		});
+
+		// Update examples when number transparency changes
+		numberTransparencySlider.addEventListener('input', e => {
+			const alphaValue = Number.parseInt(e.target.value);
+			quiztimerOptions.numberTransparency = alphaValue;
+			invalidateCache();
+			updateExampleTransparency();
+			// Update the timer display in the video immediately
+			if (!isDrawing && state === stop) {
+				isDrawing = true;
+				drawImage(gui.canvas, gui.ctx, duration).then(() => {
+					isDrawing = false;
+				});
+			}
+		});
+
+		numberTransparencySlider.addEventListener('change', _e => {
+			localStorage.setItem('numberTransparency', JSON.stringify(quiztimerOptions.numberTransparency));
+		});
+
+		/**
+		 * Updates the transparency on all color example previews in the UI.
+		 * Applies current background and number transparency settings to preview elements.
+		 */
+		function updateExampleTransparency() {
+			const examples = ['colorExampleStandard', 'colorExampleWarning', 'colorExampleTimeout'];
+
+			for (const exampleId of examples) {
+				const example = document.getElementById(exampleId);
+				if (example) {
+					// 0% transparency = fully opaque, 100% = fully transparent
+					const bgAlpha = transparencyToAlpha(quiztimerOptions.backgroundTransparency);
+					const fgAlpha = transparencyToAlpha(quiztimerOptions.numberTransparency);
+					const bgColor = example.style.background;
+					const fgColor = example.style.color;
+
+					// Apply both transparencies
+					example.style.background = hexToRgba(bgColor, bgAlpha);
+					example.style.color = hexToRgba(fgColor, fgAlpha);
+				}
+			}
+		}
+
+		// Apply initial transparency to examples
+		updateExampleTransparency();
+
+		/**
+		 * Saves an option to localStorage and redraws the timer display.
+		 *
+		 * @param {string} name - Option name/key for localStorage
+		 * @param {*} value - Option value to save (will be JSON stringified)
+		 * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} gui - GUI object with canvas and context
+		 */
 		function saveOption(name, value, gui) {
 			localStorage.setItem(name, JSON.stringify(value));
 			drawImage(gui.canvas, gui.ctx, duration);

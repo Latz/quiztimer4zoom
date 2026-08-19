@@ -3,3 +3,24 @@
 /uitest
 /.env
 /sonar-project.properties
+
+# Local backups and scratch work
+/.backups/
+/nimbalyst-local/
+/server.log
+/auth.thml
+
+# Debug screenshots
+/error*.png
+/start.png
+
+# Stale artifacts
+*.bak
+*.old
+
+# Alternate package manager files (package-lock.json is authoritative)
+/pnpm-lock.yaml
+/pnpm-workspace.yaml
+
+# Test/coverage output
+/coverage
