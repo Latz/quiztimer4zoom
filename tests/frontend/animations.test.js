@@ -63,8 +63,15 @@ describe('public/animations.js', () => {
 		});
 
 		it('calls fillText with the time', async () => {
+			await Animations.drawFrame(canvas, ctx, 21, '#ffffff', '#000000', options);
+			expect(ctx.fillText).toHaveBeenCalledWith(21, 150, 150);
+		});
+
+		it('splits 10-19 into two fillText calls with the "1" fixed at posX', async () => {
+			options.secondDigitOffset18 = 12;
 			await Animations.drawFrame(canvas, ctx, 10, '#ffffff', '#000000', options);
-			expect(ctx.fillText).toHaveBeenCalledWith(10, 150, 150);
+			expect(ctx.fillText).toHaveBeenNthCalledWith(1, '1', 150, 150);
+			expect(ctx.fillText).toHaveBeenNthCalledWith(2, '0', 162, 150);
 		});
 
 		it('calls zoomSdk.drawImage', async () => {

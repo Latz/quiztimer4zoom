@@ -11,7 +11,7 @@ const Animations = {
 
 	// Draw a single frame with custom colors
 	async drawFrame(canvas, ctx, time, bgColor, fgColor, options) {
-		const { backgroundTransparency, numberTransparency, posX, posY, x, y, zoomSdk, zIndex } = options;
+		const { backgroundTransparency, numberTransparency, posX, posY, secondDigitOffset18, x, y, zoomSdk, zIndex } = options;
 
 		const bgAlpha = (100 - backgroundTransparency) / 100;
 		const fgAlpha = (100 - numberTransparency) / 100;
@@ -27,7 +27,13 @@ const Animations = {
 
 		// Draw text
 		ctx.fillStyle = fgColorWithAlpha;
-		ctx.fillText(time, posX, posY);
+		if (time >= 10 && time <= 19) {
+			const str = String(time);
+			ctx.fillText(str[0], posX, posY);
+			ctx.fillText(str[1], posX + secondDigitOffset18, posY);
+		} else {
+			ctx.fillText(time, posX, posY);
+		}
 
 		// Get image data and send to SDK
 		const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -44,7 +50,7 @@ const Animations = {
 
 	// Draw a frame with scale transform
 	async drawFrameWithScale(canvas, ctx, time, scale, options) {
-		const { backgroundTransparency, numberTransparency, posX, posY, x, y, zoomSdk, zIndex, getColorState, getColorsForState } = options;
+		const { backgroundTransparency, numberTransparency, posX, posY, secondDigitOffset18, x, y, zoomSdk, zIndex, getColorState, getColorsForState } = options;
 
 		const currentColorState = getColorState(time);
 		const colors = getColorsForState(currentColorState);
@@ -75,7 +81,13 @@ const Animations = {
 
 		// Draw text
 		ctx.fillStyle = fgColorWithAlpha;
-		ctx.fillText(time, posX, posY);
+		if (time >= 10 && time <= 19) {
+			const str = String(time);
+			ctx.fillText(str[0], posX, posY);
+			ctx.fillText(str[1], posX + secondDigitOffset18, posY);
+		} else {
+			ctx.fillText(time, posX, posY);
+		}
 
 		// Restore context
 		ctx.restore();

@@ -167,6 +167,9 @@ document.onreadystatechange = async () => {
 		/** @type {number} Y position where text is drawn */
 		let posY = 10;
 
+		/** @type {number} X offset (from posX) at which the second digit of "18" naturally starts */
+		let secondDigitOffset18 = 0;
+
 		/** @type {number|null} Last time value that was drawn */
 		let lastDrawnTime = null;
 
@@ -698,6 +701,15 @@ document.onreadystatechange = async () => {
 			// Reset font after canvas resize (canvas resize clears font settings)
 			gui.ctx.font = `bold ${bestFontSize}px ${fontFamily}`;
 
+			// Offset for tightening two-digit numbers 10-19: digits in Arial are
+			// tabular (fixed advance width), so drawing the second digit at its
+			// natural start position produces the same spacing as default
+			// fillText — no visual tightening. Pull it in by ~15% of its own
+			// advance width instead so 19-10 read visibly closer than default.
+			const width1 = gui.ctx.measureText('1').width;
+			const width8 = gui.ctx.measureText('8').width;
+			secondDigitOffset18 = width1 - width8 * 0.15;
+
 			// Invalidate cache and draw initial time
 			invalidateCache();
 			drawImage(gui.canvas, gui.ctx, duration);
@@ -761,6 +773,23 @@ document.onreadystatechange = async () => {
 		function recalcPosX(time) {
 			const width = gui.ctx.measureText(time - 1).width;
 			posX = (gui.canvas.width - width) / 2;
+		}
+
+		/**
+		 * Draws a two-digit time value 10-19 as two separate glyphs, keeping the
+		 * leading "1" fixed at x and placing the second digit at the offset
+		 * naturally used by "18", so 19-10 all sit as tightly as "18" without
+		 * the "1" shifting position.
+		 *
+		 * @param {CanvasRenderingContext2D} ctx
+		 * @param {number} time
+		 * @param {number} x
+		 * @param {number} y
+		 */
+		function drawTightTwoDigit(ctx, time, x, y) {
+			const str = String(time);
+			ctx.fillText(str[0], x, y);
+			ctx.fillText(str[1], x + secondDigitOffset18, y);
 		}
 
 		/**
@@ -1077,6 +1106,7 @@ document.onreadystatechange = async () => {
 				numberTransparency: quiztimerOptions.numberTransparency,
 				posX,
 				posY,
+				secondDigitOffset18,
 				x: quiztimerOptions.x,
 				y: quiztimerOptions.y,
 				zoomSdk,
@@ -1122,7 +1152,11 @@ document.onreadystatechange = async () => {
 
 			// Draw text
 			ctx.fillStyle = fgColorWithAlpha;
-			ctx.fillText(time, posX, posY);
+			if (time >= 10 && time <= 19) {
+				drawTightTwoDigit(ctx, time, posX, posY);
+			} else {
+				ctx.fillText(time, posX, posY);
+			}
 
 			// Cache the image data
 			cachedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);

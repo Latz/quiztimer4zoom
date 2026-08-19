@@ -372,6 +372,7 @@ body.dark-mode .modal-close:hover {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	color: #000000;
 }
 
 .tab-button:hover {
@@ -380,7 +381,7 @@ body.dark-mode .modal-close:hover {
 }
 
 .tab-button[aria-selected='true'] {
-	color: var(--tab-text-active);
+	color: #000000;
 	background-color: var(--tab-selected-bg);
 	font-weight: 600;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -388,7 +389,7 @@ body.dark-mode .modal-close:hover {
 
 .tab-button[aria-selected='true']:hover {
 	background-color: var(--tab-selected-bg);
-	color: var(--tab-text-active);
+	color: #000000;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
