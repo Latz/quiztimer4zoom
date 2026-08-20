@@ -1,8 +1,8 @@
 // index.js
 import express from 'express';
 import cookieSession from 'cookie-session';
-import { getInstallURL, getToken, getDeeplink } from '../scripts/zoom-api.js';
-import { getAppContext } from '../scripts/cipher.js';
+import { getInstallURL, getToken, getDeeplink } from 'scripts/zoom-api.js';
+import { getAppContext } from 'scripts/cipher.js';
 import cookieParser from 'cookie-parser';
 import os from 'os';
 import dotenv from 'dotenv';
@@ -26,23 +26,11 @@ zoomApp = {
 	redirectUrl: process.env.ZM_REDIRECT_URL,
 };
 
-function noCache(req, res, next) {
-	res.setHeader(
-		'Cache-Control',
-		'no-store, no-cache, must-revalidate, proxy-revalidate'
-	);
-	res.setHeader('Pragma', 'no-cache');
-	res.setHeader('Expires', '0');
-	res.setHeader('Surrogate-Control', 'no-store'); // Also useful for CDNs
-	next();
-}
-
 const app = express();
 app.use(express.static(path.join(__dirname, '.')));
+// app.use(express.static(path.join(__dirname, '/api/scripts')));
 
 app.use(cookieParser());
-
-app.use(noCache);
 
 app.get('/', async (req, res, next) => {
 	const header = req.header('x-zoom-app-context');

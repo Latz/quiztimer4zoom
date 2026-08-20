@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { ViteMinifyPlugin } from 'vite-plugin-minify';
 
-import path from 'node:path';
+import path from 'path';
 
 export default defineConfig({
 	build: {
