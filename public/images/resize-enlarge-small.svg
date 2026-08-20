@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">
+  <defs>
+    <style>
+      .arrow { fill: none; stroke: #333; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <path d="M 20 30 L 8 30 M 11 27 L 8 30 L 11 33" class="arrow"/>
+  <path d="M 40 30 L 52 30 M 49 27 L 52 30 L 49 33" class="arrow"/>
+  <path d="M 30 20 L 30 8 M 27 11 L 30 8 L 33 11" class="arrow"/>
+  <path d="M 30 40 L 30 52 M 27 49 L 30 52 L 33 49" class="arrow"/>
+</svg>
