@@ -96,9 +96,13 @@ export function getAppContext(header, secret = '') {
 	console.error('[cipher-debug]', {
 		headerLength: header.length,
 		rawByteLength: Buffer.from(header, 'base64').length,
+		ivHex: iv.toString('hex'),
 		ivLength: iv.length,
+		aadHex: aad.toString('hex'),
 		aadLength: aad.length,
+		cipherTextHex: cipherText.toString('hex'),
 		cipherTextLength: cipherText.length,
+		tagHex: tag.toString('hex'),
 		tagLength: tag.length,
 		keyLength: key.length,
 		derivedKeyHash: crypto.createHash('sha256').update(hash).digest('hex'),
