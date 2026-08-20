@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
+		exclude: ['**/node_modules/**', '**/temp/**'],
 		globalSetup: './tests/setup/global-setup.js',
 		setupFiles: ['./tests/setup/localStorage-stub.js'],
 		environmentOptions: { jsdom: { url: 'http://localhost:3000' } },

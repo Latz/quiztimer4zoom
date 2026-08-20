@@ -24,3 +24,6 @@
 
 # Test/coverage output
 /coverage
+
+# Unrelated scratch project mounted locally
+/temp
