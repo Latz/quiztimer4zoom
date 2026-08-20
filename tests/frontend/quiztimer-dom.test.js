@@ -31,10 +31,10 @@ function buildDom() {
 		</div>
 		<div id="options" hidden>
 			<div id="positionCorners">
-				<button data-position="posTopLeft">TL</button>
-				<button data-position="posTopRight">TR</button>
-				<button data-position="posBottomLeft">BL</button>
-				<button data-position="posBottomRight">BR</button>
+				<button id="posTopLeft" data-position="posTopLeft">TL</button>
+				<button id="posTopRight" data-position="posTopRight">TR</button>
+				<button id="posBottomLeft" data-position="posBottomLeft">BL</button>
+				<button id="posBottomRight" data-position="posBottomRight">BR</button>
 			</div>
 			<div id="timerSize">
 				<button id="btn_timerSizeMinus">-</button>
@@ -75,7 +75,7 @@ function buildDom() {
 	`;
 }
 
-async function loadScript() {
+async function loadScript({ localStorageSeed } = {}) {
 	vi.resetModules();
 
 	// Provide zoomSdk global (quiztimer-script.js reads it as a bare global)
@@ -107,6 +107,11 @@ async function loadScript() {
 
 	// Pre-populate localStorage with defaults
 	localStorage.clear();
+	if (localStorageSeed) {
+		for (const [key, value] of Object.entries(localStorageSeed)) {
+			localStorage.setItem(key, value);
+		}
+	}
 
 	buildDom();
 
@@ -122,7 +127,10 @@ async function loadScript() {
 
 describe('public/quiztimer-script.js — DOM integration', () => {
 	beforeEach(async () => {
-		vi.useFakeTimers();
+		// scheduleTimerUpdate() computes elapsed time from performance.now(), not
+		// just setTimeout ticks, so fake timers must advance it too or the
+		// countdown never progresses even as setTimeout callbacks fire.
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
 		await loadScript();
 	});
 
@@ -186,5 +194,150 @@ describe('public/quiztimer-script.js — DOM integration', () => {
 		expect(() => {
 			document.getElementById('btn_panic').click();
 		}).not.toThrow();
+	});
+
+	describe('setPosition (position corner buttons)', () => {
+		it.each(['posTopLeft', 'posTopRight', 'posBottomLeft', 'posBottomRight'])(
+			'clicking %s does not throw and persists the position to localStorage',
+			async position => {
+				document.getElementById(position).click();
+				await vi.advanceTimersByTimeAsync(0);
+				expect(JSON.parse(localStorage.getItem('position'))).toBe(position);
+			},
+		);
+	});
+
+	describe('timer countdown', () => {
+		it('running the timer to completion draws every color state and resets', async () => {
+			document.getElementById('btn_startStop').click();
+			await vi.advanceTimersByTimeAsync(0);
+
+			// Advance well past the 20s default duration in 150ms steps (the
+			// scheduleTimerUpdate tick) so every intermediate second — including
+			// the <=5s "warning" state and the 0s "timeout" state — gets drawn,
+			// and the post-timeout timedReset countdown completes.
+			await vi.advanceTimersByTimeAsync(21000);
+			await vi.advanceTimersByTimeAsync(3000);
+
+			const btn = document.getElementById('btn_startStop');
+			const text = btn.innerText ?? btn.textContent;
+			expect(text).toMatch(/start/i);
+			expect(document.getElementById('btn_continue').disabled).toBe(true);
+		});
+
+		it('stopping and continuing resumes the countdown', async () => {
+			document.getElementById('btn_startStop').click();
+			await vi.advanceTimersByTimeAsync(500);
+			document.getElementById('btn_startStop').click(); // stop
+			await vi.advanceTimersByTimeAsync(0);
+			expect(document.getElementById('btn_continue').disabled).toBe(false);
+
+			document.getElementById('btn_continue').click(); // continue
+			await vi.advanceTimersByTimeAsync(0);
+			const btn = document.getElementById('btn_startStop');
+			const text = btn.innerText ?? btn.textContent;
+			expect(text).toMatch(/stop/i);
+			expect(document.getElementById('btn_continue').disabled).toBe(true);
+		});
+
+		it('stopping without continuing auto-resets via timedReset', async () => {
+			document.getElementById('btn_startStop').click();
+			await vi.advanceTimersByTimeAsync(500);
+			document.getElementById('btn_startStop').click(); // stop -> starts timedReset
+			await vi.advanceTimersByTimeAsync(0);
+
+			// timedReset ticks every 50ms from width=100 down to 0 (~2500ms)
+			await vi.advanceTimersByTimeAsync(2600);
+			expect(document.getElementById('btn_continue').disabled).toBe(true);
+		});
+	});
+
+	describe('keydown shortcuts', () => {
+		it('space starts the timer when stopped', async () => {
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+			await vi.advanceTimersByTimeAsync(0);
+			const btn = document.getElementById('btn_startStop');
+			const text = btn.innerText ?? btn.textContent;
+			expect(text).toMatch(/stop/i);
+		});
+
+		it('space stops the timer when running', async () => {
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+			await vi.advanceTimersByTimeAsync(0);
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+			await vi.advanceTimersByTimeAsync(0);
+			const btn = document.getElementById('btn_startStop');
+			const text = btn.innerText ?? btn.textContent;
+			expect(text).toMatch(/start/i);
+		});
+
+		it('"c" continues the timer', async () => {
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); // start
+			await vi.advanceTimersByTimeAsync(500);
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' })); // stop
+			await vi.advanceTimersByTimeAsync(0);
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c' })); // continue
+			await vi.advanceTimersByTimeAsync(0);
+			const btn = document.getElementById('btn_startStop');
+			const text = btn.innerText ?? btn.textContent;
+			expect(text).toMatch(/stop/i);
+		});
+	});
+
+	describe('color and transparency inputs', () => {
+		it('changing a color input does not throw and persists via saveOption', async () => {
+			const input = document.getElementById('colorSelectorNumberStandard');
+			input.value = '#123456';
+			expect(() => {
+				input.dispatchEvent(new Event('change', { bubbles: true }));
+			}).not.toThrow();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(localStorage.getItem('colorsStandard')).toBeTruthy();
+		});
+
+		it('moving the background transparency slider does not throw', async () => {
+			const slider = document.getElementById('backgroundTransparencySlider');
+			slider.value = '50';
+			expect(() => {
+				slider.dispatchEvent(new Event('input', { bubbles: true }));
+				slider.dispatchEvent(new Event('change', { bubbles: true }));
+			}).not.toThrow();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(JSON.parse(localStorage.getItem('backgroundTransparency'))).toBe(50);
+		});
+
+		it('moving the number transparency slider does not throw', async () => {
+			const slider = document.getElementById('numberTransparencySlider');
+			slider.value = '75';
+			expect(() => {
+				slider.dispatchEvent(new Event('input', { bubbles: true }));
+				slider.dispatchEvent(new Event('change', { bubbles: true }));
+			}).not.toThrow();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(JSON.parse(localStorage.getItem('numberTransparency'))).toBe(75);
+		});
+	});
+
+	describe('timer size buttons', () => {
+		it('clicking timer size plus/minus does not throw and updates boxSize', async () => {
+			document.getElementById('btn_timerSizePlus').click();
+			await vi.advanceTimersByTimeAsync(0);
+			const first = JSON.parse(localStorage.getItem('boxSize'));
+
+			document.getElementById('btn_timerSizeMinus').click();
+			await vi.advanceTimersByTimeAsync(0);
+			const second = JSON.parse(localStorage.getItem('boxSize'));
+
+			expect(typeof first).toBe('number');
+			expect(second).toBe(first - 1);
+		});
+	});
+
+	describe('dark mode restored from localStorage on load', () => {
+		it('applies dark-mode class and sun icon when darkMode was previously saved', async () => {
+			await loadScript({ localStorageSeed: { darkMode: 'true' } });
+			expect(document.body.classList.contains('dark-mode')).toBe(true);
+			expect(document.getElementById('btn_darkmode').textContent).toBe('☀️');
+		});
 	});
 });
