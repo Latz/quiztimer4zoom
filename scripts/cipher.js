@@ -86,6 +86,18 @@ export function getAppContext(header, secret = '') {
 	// Decode and parse context
 	const { iv, aad, cipherText, tag } = unpack(header);
 
+	// TEMP DEBUG: log non-secret shape info to diagnose a decrypt failure.
+	// Remove once resolved.
+	console.error('[cipher-debug]', {
+		headerLength: header.length,
+		rawByteLength: Buffer.from(header, 'base64').length,
+		ivLength: iv.length,
+		aadLength: aad.length,
+		cipherTextLength: cipherText.length,
+		tagLength: tag.length,
+		keyLength: key.length,
+	});
+
 	// Create sha256 hash from Client Secret (key)
 	const hash = crypto.createHash('sha256').update(key).digest();
 
